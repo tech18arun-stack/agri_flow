@@ -114,6 +114,7 @@ class AuthService {
       case 'farmer': return UserRole.farmer;
       case 'merchant': return UserRole.merchant;
       case 'admin': return UserRole.admin;
+      case 'price_updater': return UserRole.priceUpdater;
       default: return UserRole.customer;
     }
   }

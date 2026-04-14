@@ -10,3 +10,5 @@ export 'inventory_provider.dart';
 export 'transaction_provider.dart';
 export 'cart_persistence_provider.dart';
 export 'notification_provider.dart';
+export 'flower_price_provider.dart';
+export 'flower_catalog_provider.dart';

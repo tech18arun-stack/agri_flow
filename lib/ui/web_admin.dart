@@ -11,6 +11,8 @@ import 'screens/admin/admin_orders_screen.dart';
 import 'screens/admin/admin_analytics_screen.dart';
 import 'screens/admin/admin_push_notifications_screen.dart';
 import 'screens/admin/admin_catalog_screen.dart';
+import 'screens/admin/admin_flower_prices_screen.dart';
+import 'screens/admin/admin_price_updaters_screen.dart';
 
 class AdminPortalScaffold extends StatefulWidget {
   const AdminPortalScaffold({super.key});
@@ -65,6 +67,18 @@ class _AdminPortalScaffoldState extends State<AdminPortalScaffold> {
       'Push',
       'புஷ்',
       const AdminPushNotificationScreen()
+    ),
+    (
+      Icons.local_florist_outlined,
+      'Flower Prices',
+      'பூ விலைகள்',
+      const AdminFlowerPricesScreen()
+    ),
+    (
+      Icons.manage_accounts_outlined,
+      'Price Updaters',
+      'விலை குழு',
+      const AdminPriceUpdatersScreen()
     ),
     (
       Icons.settings_outlined,

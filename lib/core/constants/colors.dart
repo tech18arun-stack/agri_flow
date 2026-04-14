@@ -102,4 +102,8 @@ class C {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  // Semantic Text Colors
+  static const textHeader = onBackground;
+  static const textSub = onSurfaceVariant;
 }

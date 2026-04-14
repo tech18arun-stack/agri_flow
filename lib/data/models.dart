@@ -1,4 +1,12 @@
-enum UserRole { farmer, merchant, customer, admin }
+enum UserRole { farmer, merchant, customer, admin, priceUpdater }
+
+extension UserRoleExtension on UserRole {
+  /// The string stored in the Appwrite database for this role
+  String get dbValue {
+    if (this == UserRole.priceUpdater) return 'price_updater';
+    return name;
+  }
+}
 
 class UserModel {
   final String id;

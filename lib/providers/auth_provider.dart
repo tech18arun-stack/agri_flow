@@ -105,6 +105,7 @@ class AuthProvider extends ChangeNotifier {
     if (r == 'farmer') return UserRole.farmer;
     if (r == 'merchant') return UserRole.merchant;
     if (r == 'admin') return UserRole.admin;
+    if (r == 'price_updater' || r == 'priceupdater') return UserRole.priceUpdater;
     return UserRole.customer;
   }
 
@@ -242,6 +243,7 @@ class AuthProvider extends ChangeNotifier {
     if (roleStr == 'farmer') role = UserRole.farmer;
     if (roleStr == 'merchant') role = UserRole.merchant;
     if (roleStr == 'admin') role = UserRole.admin;
+    if (roleStr == 'price_updater' || roleStr == 'priceupdater') role = UserRole.priceUpdater;
 
     return UserModel(
       id: doc.$id,

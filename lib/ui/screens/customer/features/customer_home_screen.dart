@@ -7,6 +7,7 @@ import '../../../../data/models.dart';
 import '../../../widgets/premium_product_cards.dart';
 import 'all_products_screen.dart';
 import '../../../../widgets/interactive_card.dart';
+import 'flower_prices_public_screen.dart';
 
 class _ResponsiveBreakpoints {
   static int gridCrossAxisCount(double width) {
@@ -167,6 +168,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               ),
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+              // Flower Prices Banner
+              SliverToBoxAdapter(
+                child: _FlowerPricesBanner(
+                  district: _selectedLocation,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const FlowerPricesPublicScreen()),
+                  ),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
               // Categories Horizontal Strip (Swiggy Style)
               const _CategoryStrip(),
@@ -887,6 +902,131 @@ class _SectionHeader extends StatelessWidget {
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== FLOWER PRICES BANNER ====================
+
+class _FlowerPricesBanner extends StatefulWidget {
+  final String district;
+  final VoidCallback onTap;
+
+  const _FlowerPricesBanner({required this.district, required this.onTap});
+
+  @override
+  State<_FlowerPricesBanner> createState() => _FlowerPricesBannerState();
+}
+
+class _FlowerPricesBannerState extends State<_FlowerPricesBanner> {
+  static const _kFlowerPink = Color(0xFFdb2777);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final flowerPrices = context.read<FlowerPriceProvider>();
+      flowerPrices.loadPrices(widget.district);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final prices = context.watch<FlowerPriceProvider>();
+    final published =
+        prices.todayPrices.where((p) => p.isPublished).take(3).toList();
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_kFlowerPink, Color(0xFF7c3aed)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: _kFlowerPink.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Left: icon and heading
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('🌸 Today\'s Flower Prices',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.district,
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  if (published.isNotEmpty)
+                    ...published.map((p) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            Text('🌸',
+                                style: const TextStyle(fontSize: 14)),
+                            const SizedBox(width: 6),
+                            Text(p.flowerName,
+                                style: TextStyle(
+                                    color: Colors.white
+                                        .withValues(alpha: 0.9),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
+                            const Spacer(),
+                            Text(
+                              '₹${p.priceMin.toStringAsFixed(0)}–₹${p.priceMax.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      );
+                    })
+                  else
+                    Text(
+                      'Tap to see all district prices',
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 12),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Right: arrow
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_forward_ios,
+                  color: Colors.white, size: 16),
+            ),
           ],
         ),
       ),

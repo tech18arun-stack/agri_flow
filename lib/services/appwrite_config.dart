@@ -1,5 +1,5 @@
 class AppwriteConfig {
-  static const String endpoint = 'https://api.websitescorp.com/v1';
+  static const String endpoint = 'https://farmer.websitescorp.com/v1';
   static const String projectId = '69d5d5ff0014699913f4';
   static const String databaseId = '69d5d6770036e6c9bfc';
 
@@ -23,7 +23,8 @@ class AppwriteConfig {
   static const String priceLogsTableId = 'price_logs';
   static const String priceLogsCollectionId = priceLogsTableId; // alias
   static const String aggregatedPricesTableId = 'aggregated_prices';
-  static const String aggregatedPricesCollectionId = aggregatedPricesTableId; // alias
+  static const String aggregatedPricesCollectionId =
+      aggregatedPricesTableId; // alias
   static const String priceTrendsTableId = 'price_trends';
   static const String priceTrendsCollectionId = priceTrendsTableId; // alias
   static const String categoriesTableId = 'categories';
@@ -58,6 +59,12 @@ class AppwriteConfig {
   static const String adminSettingsCollectionId = adminSettingsTableId;
   static const String productTemplatesTableId = 'product_templates';
   static const String productTemplatesCollectionId = productTemplatesTableId;
+
+  // Flower Price System
+  static const String flowerPricesTableId = 'flower_prices';
+  static const String flowerPricesCollectionId = flowerPricesTableId;
+  static const String flowerCatalogTableId = 'flower_catalog';
+  static const String flowerCatalogCollectionId = flowerCatalogTableId;
 
   // Bucket IDs
   static const String productImagesBucketId = 'product_images';

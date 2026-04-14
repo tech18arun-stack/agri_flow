@@ -32,6 +32,7 @@ import 'ui/screens/merchant/features/margin_calculator_screen.dart';
 import 'ui/screens/merchant/features/selling_screen.dart';
 import 'ui/screens/merchant/features/profit_loss_screen.dart';
 import 'ui/web_admin.dart';
+import 'ui/screens/flower_price/flower_price_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,6 +77,8 @@ class _AgriFlowAppState extends State<AgriFlowApp> {
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => CartPersistenceProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => FlowerPriceProvider()),
+        ChangeNotifierProvider(create: (_) => FlowerCatalogProvider()),
       ],
       child: MaterialApp(
         title: 'Agri Flow | அக்ரி ப்ளோ',
@@ -106,6 +109,7 @@ class _AgriFlowAppState extends State<AgriFlowApp> {
           '/margin': (_) => const PriceMarginCalculator(),
           '/selling': (_) => const SellingScreen(),
           '/profit-loss': (_) => const ProfitLossTrackingScreen(),
+          '/flowers': (_) => const FlowerPriceDashboard(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/product_detail' && settings.arguments is ProductModel) {
@@ -143,7 +147,11 @@ class _RouterState extends State<_Router> {
         if (auth.role == UserRole.admin) {
           return const AdminPortalScaffold();
         }
-        // Non-admin trying to access web: block
+        // Price updater on web → Flower Price Dashboard
+        if (auth.role == UserRole.priceUpdater) {
+          return const FlowerPriceDashboard();
+        }
+        // Non-admin / non-price-updater trying to access web: block
         return const _WebBlockedScreen();
       }
       // Not logged in on web: show admin login
@@ -156,8 +164,8 @@ class _RouterState extends State<_Router> {
       return const SplashScreen();
     }
 
-    // Admin trying to access mobile: block
-    if (auth.role == UserRole.admin) {
+    // Admin and price_updater are web-only roles
+    if (auth.role == UserRole.admin || auth.role == UserRole.priceUpdater) {
       return const _MobileBlockedScreen();
     }
 
@@ -182,6 +190,9 @@ class _HomeShell extends StatelessWidget {
         return const MerchantScreen();
       case UserRole.customer:
         return const CustomerScreen();
+      case UserRole.priceUpdater:
+        // Should never reach here on mobile (blocked above)
+        return const FlowerPriceDashboard();
       default:
         return const LoginScreen();
     }
