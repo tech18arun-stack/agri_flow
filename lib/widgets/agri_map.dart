@@ -68,8 +68,9 @@ class _AgriMapState extends State<AgriMap> {
         // Map tiles
         TileLayer(
           urlTemplate: MapService.tileUrl,
-          userAgentPackageName: 'com.example.agri_flow',
-          tileDimension: 256,
+          userAgentPackageName: 'com.farm.agri_flow',
+          tileProvider: NetworkTileProvider(),
+          maxZoom: 19,
         ),
         
         // Current location marker

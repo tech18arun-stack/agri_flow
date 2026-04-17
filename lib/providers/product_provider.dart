@@ -30,7 +30,10 @@ class ProductProvider extends ChangeNotifier {
       final result = await _svc.db.listDocuments(
         databaseId: _svc.databaseId,
         collectionId: AppwriteConfig.productsTableId,
-        queries: [Query.orderDesc('createdAt')],
+        queries: [
+          Query.orderDesc('createdAt'),
+          Query.limit(100),
+        ],
       );
 
       _products = result.documents.map(_parseDoc).toList();
@@ -115,6 +118,7 @@ class ProductProvider extends ChangeNotifier {
     String? imageUrl,
     required String farmerId,
     required String farmerName,
+    String? farmerPhone,
     required String harvestedDate,
     double? lat,
     double? lng,
@@ -138,6 +142,7 @@ class ProductProvider extends ChangeNotifier {
         'imageUrl': imageUrl ?? '',
         'farmerId': farmerId,
         'farmerName': farmerName,
+        'farmerPhone': farmerPhone ?? '',
         'harvestedDate': harvestedDate,
         'rating': 0.0,
         'reviews': 0,
@@ -284,6 +289,7 @@ class ProductProvider extends ChangeNotifier {
       address: doc.data['address']?.isNotEmpty == true ? doc.data['address'] : null,
       farmerName: doc.data['farmerName'] ?? '',
       farmerId: doc.data['farmerId'] ?? '',
+      farmerPhone: doc.data['farmerPhone'],
       imageUrl: doc.data['imageUrl']?.isNotEmpty == true ? doc.data['imageUrl'] : null,
       rating: (doc.data['rating'] as num?)?.toDouble() ?? 0,
       reviews: doc.data['reviews'] ?? 0,

@@ -29,6 +29,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (success && mounted) {
       if (auth.role != UserRole.admin) {
         await auth.logout();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access Denied: Not an Admin')));
       } else {
         // Pop the admin login screen so the _Router's admin portal is visible

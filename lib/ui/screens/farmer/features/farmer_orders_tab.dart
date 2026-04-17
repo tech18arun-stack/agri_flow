@@ -208,28 +208,7 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: C.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined,
-                          size: 12, color: C.primary),
-                      const SizedBox(width: 6),
-                      Text(
-                        _formatDate(order.createdAt),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: C.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildActionButtons(context),
               ],
             ),
           ],
@@ -238,8 +217,117 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month} • ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  Widget _buildActionButtons(BuildContext context) {
+    String? nextStatus;
+    String? btnText;
+    IconData? icon;
+
+    switch (order.status.toLowerCase()) {
+      case 'pending':
+        nextStatus = 'confirmed';
+        btnText = 'Confirm';
+        icon = Icons.check_circle_outline;
+        break;
+      case 'confirmed':
+        nextStatus = 'shipped';
+        btnText = 'Ship';
+        icon = Icons.local_shipping_outlined;
+        break;
+      case 'shipped':
+        nextStatus = 'delivered';
+        btnText = 'Deliver';
+        icon = Icons.done_all_rounded;
+        break;
+    }
+
+    if (nextStatus == null) {
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: C.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_outlined, size: 12, color: C.primary),
+            const SizedBox(width: 6),
+            Text(
+              '${order.createdAt.day}/${order.createdAt.month} • ${order.createdAt.hour}:${order.createdAt.minute.toString().padLeft(2, '0')}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: C.primary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        InteractiveCard(
+          scaleFactor: 0.9,
+          onTap: () async {
+            final orderProv = context.read<OrderProvider>();
+            await orderProv.updateOrderStatus(order.id, nextStatus!, order.customerId);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0d631b), Color(0xFF16A34A)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF16A34A).withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 16, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(
+                  btnText!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        PopupMenuButton<String>(
+          onSelected: (val) async {
+            if (val == 'cancel') {
+              final orderProv = context.read<OrderProvider>();
+              await orderProv.updateOrderStatus(order.id, 'cancelled', order.customerId);
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'cancel',
+              child: Text('Cancel Order', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+            ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.more_vert, size: 18, color: Colors.grey),
+          ),
+        ),
+      ],
+    );
   }
 }
 

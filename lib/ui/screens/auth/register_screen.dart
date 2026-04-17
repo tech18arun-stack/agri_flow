@@ -5,10 +5,11 @@ import '../../../providers/providers.dart';
 import '../../../services/location_service.dart';
 import '../../../data/models.dart';
 import '../../../core/constants/strings.dart';
-import '../../../widgets/shared_widgets.dart';
 import 'dart:ui';
 import '../../../widgets/glass_container.dart';
 import '../../../widgets/interactive_card.dart';
+import '../legal/terms_and_conditions_screen.dart';
+import '../legal/privacy_policy_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,6 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   UserRole _selectedRole = UserRole.farmer;
   bool _showTamil = false;
+  bool _acceptedTerms = false;
   List<aw.Document> _districts = [];
   List<aw.Document> _talukas = [];
   List<aw.Document> _municipalities = [];
@@ -48,7 +50,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       _passCtrl.text.isNotEmpty &&
       _confirmPassCtrl.text.isNotEmpty &&
       _passCtrl.text == _confirmPassCtrl.text &&
-      _selectedDistrict != null;
+      _selectedDistrict != null &&
+      _acceptedTerms;
 
   @override
   void initState() {
@@ -491,6 +494,113 @@ class _RegisterScreenState extends State<RegisterScreen>
                                         () => _selectedMunicipality = v)),
                                 const SizedBox(height: 32),
                               ],
+                              const SizedBox(height: 20),
+                              
+                              // Terms and Conditions Checkbox
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  InteractiveCard(
+                                    scaleFactor: 0.9,
+                                    onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      margin: const EdgeInsets.only(top: 2),
+                                      decoration: BoxDecoration(
+                                        color: _acceptedTerms
+                                            ? const Color(0xFF16A34A)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: _acceptedTerms
+                                              ? const Color(0xFF16A34A)
+                                              : Colors.white.withValues(alpha: 0.5),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: _acceptedTerms
+                                          ? const Icon(
+                                              Icons.check,
+                                              size: 18,
+                                              color: Colors.white,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: TextStyle(
+                                            fontSize: isWideScreen ? 13 : 12,
+                                            color: Colors.white.withValues(alpha: 0.85),
+                                          ),
+                                          children: [
+                                            TextSpan(
+                                              text: _showTamil
+                                                  ? 'நான் ஏற்கிறேன் '
+                                                  : 'I agree to the ',
+                                            ),
+                                            WidgetSpan(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          const TermsAndConditionsScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Text(
+                                                  _showTamil
+                                                      ? 'பயன்பாட்டு விதிமுறைகள்'
+                                                      : 'Terms and Conditions',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF16A34A),
+                                                    fontWeight: FontWeight.w700,
+                                                    decoration: TextDecoration.underline,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text: _showTamil ? ' மற்றும் ' : ' and ',
+                                            ),
+                                            WidgetSpan(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          const PrivacyPolicyScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Text(
+                                                  _showTamil
+                                                      ? 'தனியுரிமக் கொள்கை'
+                                                      : 'Privacy Policy',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF16A34A),
+                                                    fontWeight: FontWeight.w700,
+                                                    decoration: TextDecoration.underline,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
                               if (_registering)
                                 const Center(child: CircularProgressIndicator())
                               else
@@ -654,9 +764,11 @@ class _RegisterScreenState extends State<RegisterScreen>
         style: const TextStyle(color: Colors.white, fontSize: 14),
         iconEnabledColor: Colors.white,
         decoration: InputDecoration(
-            label: DefaultTextStyle.merge(
-                style: const TextStyle(color: Colors.white),
-                child: BiLabel(en: label, ta: labelTa, enSize: 13)),
+            labelText: _showTamil ? labelTa : label,
+            labelStyle: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 13,
+            ),
             filled: true,
             fillColor: Colors.transparent,
             contentPadding:
@@ -664,8 +776,21 @@ class _RegisterScreenState extends State<RegisterScreen>
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none)),
-        items: uniqueItems,
-        onChanged: onChanged,
+        items: uniqueItems.isEmpty
+            ? [
+                DropdownMenuItem<String>(
+                  value: null,
+                  enabled: false,
+                  child: Text(
+                    _showTamil ? 'தேர்வுகள் இல்லை' : 'No options available',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ]
+            : uniqueItems,
+        onChanged: uniqueItems.isEmpty ? null : onChanged,
       ),
     );
   }
@@ -769,7 +894,7 @@ class _RoleTab extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
+        child: SizedBox(
           height: 48,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

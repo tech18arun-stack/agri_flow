@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../data/models.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/category_utils.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -114,8 +115,6 @@ class _SearchScreenState extends State<SearchScreen> {
     final categories = allProducts.map((p) => p.category).toSet().toList()..sort();
     final locations = allProducts.map((p) => p.location).toSet().toList()..sort();
     final hasQuery = _searchCtrl.text.isNotEmpty;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final searchState = context.findAncestorStateOfType<_SearchScreenState>();
 
     return Container(
       color: C.background,
@@ -406,6 +405,13 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+
+  void _updateCategory(String category) {
+    setState(() {
+      _selectedCategory = category.toLowerCase();
+      _performSearch(_searchCtrl.text);
+    });
+  }
 }
 
 class _FilterChip extends StatelessWidget {
@@ -449,8 +455,7 @@ class _CategoryChip extends StatelessWidget {
       onTap: () {
         final searchScreen = context.findAncestorStateOfType<_SearchScreenState>();
         if (searchScreen != null) {
-          searchScreen.setState(() => searchScreen._selectedCategory = label.toLowerCase());
-          searchScreen._performSearch(searchScreen._searchCtrl.text);
+          searchScreen._updateCategory(label);
         }
       },
       child: Container(
@@ -493,18 +498,34 @@ class _ProductSearchCard extends StatelessWidget {
         child: Row(
           children: [
             // Product image placeholder
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: C.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _getCategoryIcon(product.category),
-                size: 32,
-                color: C.primary.withValues(alpha: 0.3),
-              ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: product.imageUrl!,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        color: C.surfaceContainerHigh,
+                        child: Center(
+                          child: Icon(_getCategoryIcon(product.category), size: 32, color: C.primary.withValues(alpha: 0.1)),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: C.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _getCategoryIcon(product.category),
+                        size: 32,
+                        color: C.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
             ),
             const SizedBox(width: 12),
             // Product info
@@ -512,11 +533,23 @@ class _ProductSearchCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: C.onSurface),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: C.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (product.nameTa.isNotEmpty)
+                        Text(
+                          product.nameTa,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF065f46)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(

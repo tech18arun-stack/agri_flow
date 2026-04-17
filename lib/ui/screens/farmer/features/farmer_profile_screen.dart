@@ -4,6 +4,7 @@ import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../widgets/glass_container.dart';
 import '../../../../widgets/interactive_card.dart';
+import '../../../../core/utils/url_utils.dart';
 
 class FarmerProfileScreen extends StatelessWidget {
   const FarmerProfileScreen({super.key});
@@ -24,6 +25,20 @@ class FarmerProfileScreen extends StatelessWidget {
             pinned: true,
             stretch: true,
             backgroundColor: const Color(0xFF0d631b),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  // If we can't pop, we are likely in a tab. 
+                  // In which case the PopScope on FarmerScreen will handle system back,
+                  // but for a UI button we can't easily reach FarmerScreen state without a provider.
+                  // However, clicking back should at least try to go back.
+                  Navigator.of(context).maybePop();
+                }
+              },
+            ),
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [
                 StretchMode.blurBackground,
@@ -118,6 +133,15 @@ class FarmerProfileScreen extends StatelessWidget {
               ),
             ),
           ),
+
+          if (user?.isDeletionPending ?? false)
+            SliverToBoxAdapter(
+              child: _DeletionPendingBanner(
+                hoursRemaining: user!.deletionHoursRemaining,
+                onRevoke: () =>
+                    context.read<AuthProvider>().cancelAccountDeletion(),
+              ),
+            ),
 
           SliverToBoxAdapter(
             child: Padding(
@@ -239,11 +263,102 @@ class FarmerProfileScreen extends StatelessWidget {
                         value: user.address!,
                         color: const Color(0xFF6366f1)),
 
+                  const SizedBox(height: 32),
+                  const Text('Help & Support',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: C.onSurface,
+                          letterSpacing: -0.5)),
+                  const SizedBox(height: 16),
+                  _FullWidthBentoCard(
+                    icon: Icons.support_agent_rounded,
+                    label: 'Official Support Email',
+                    value: 'ceo@websitescorp.com',
+                    color: const Color(0xFF4338CA),
+                    onTap: () => launchAppURL('mailto:ceo@websitescorp.com'),
+                  ),
+                  const SizedBox(height: 12),
+                  _FullWidthBentoCard(
+                    icon: Icons.star_rate_rounded,
+                    label: 'Rate Agri-Flow',
+                    value: 'Support our mission',
+                    color: const Color(0xFFF59E0B),
+                    onTap: () => launchAppURL('https://play.google.com/store/apps/details?id=com.agriflow'),
+                  ),
+                  const SizedBox(height: 12),
+                  _FullWidthBentoCard(
+                    icon: Icons.description_rounded,
+                    label: 'Terms & Privacy',
+                    value: 'Legal transparency',
+                    color: const Color(0xFF64748B),
+                    onTap: () => Navigator.pushNamed(context, '/terms'),
+                  ),
+
+                  const SizedBox(height: 32),
+                  const Text('Danger Zone',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: C.error,
+                          letterSpacing: -0.5)),
+                  const SizedBox(height: 16),
+                  _DangerZoneCard(
+                    onTap: () => _showDeleteAccountDialog(context),
+                  ),
+
                   const SizedBox(
                       height: 100), // Bottom padding for floating nav
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Delete Account',
+            style: TextStyle(fontWeight: FontWeight.w900, color: C.error)),
+        content: const Text(
+          'Your account and all related data (products, orders, profile) will be permanently deleted after 48 hours. You can revoke this request anytime before the deadline.',
+          style: TextStyle(height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel',
+                style:
+                    TextStyle(color: Colors.grey, fontWeight: FontWeight.w700)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await context
+                  .read<AuthProvider>()
+                  .requestAccountDeletion();
+              if (success && context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content:
+                          Text('Account deletion scheduled in 48 hours.')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: C.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Request Deletion',
+                style: TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -272,7 +387,7 @@ class FarmerProfileScreen extends StatelessWidget {
                   context, '/login', (route) => false);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
+              backgroundColor: const Color(0xFF0d631b),
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -280,6 +395,119 @@ class FarmerProfileScreen extends StatelessWidget {
             ),
             child: const Text('Logout',
                 style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DangerZoneCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _DangerZoneCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InteractiveCard(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: C.error.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: C.error.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: C.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.delete_forever_rounded,
+                  color: C.error, size: 24),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Delete Account',
+                      style: TextStyle(
+                          color: C.error,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15)),
+                  SizedBox(height: 2),
+                  Text('Request permanent account removal',
+                      style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeletionPendingBanner extends StatelessWidget {
+  final int hoursRemaining;
+  final VoidCallback onRevoke;
+
+  const _DeletionPendingBanner(
+      {required this.hoursRemaining, required this.onRevoke});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: C.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: C.error.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.timer_outlined, color: C.error, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Account Deletion Pending (~$hoursRemaining hours left)',
+                  style: const TextStyle(
+                      color: C.error,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onRevoke,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: C.error,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              child: const Text('REVOKE REQUEST',
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1)),
+            ),
           ),
         ],
       ),
@@ -344,24 +572,28 @@ class _FullWidthBentoCard extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
+  final VoidCallback? onTap;
 
   const _FullWidthBentoCard(
       {required this.icon,
       required this.label,
       required this.value,
-      required this.color});
+      required this.color,
+      this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: C.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
+    return InteractiveCard(
+      onTap: onTap ?? () {},
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: C.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -390,6 +622,7 @@ class _FullWidthBentoCard extends StatelessWidget {
           ),
         ],
       ),
+    )
     );
   }
 }

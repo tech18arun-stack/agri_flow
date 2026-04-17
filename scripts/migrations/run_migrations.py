@@ -11,6 +11,10 @@ import os
 import sys
 import importlib.util
 import warnings
+import io
+
+# Fix UTF-8 printing on Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 # Suppress deprecation warnings from Appwrite SDK
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -25,6 +29,7 @@ MIGRATIONS = [
     ("005", "Add Missing Product Attributes", "005_fix_product_attributes.py"),
     ("006", "Add User Profile Fields", "006_user_profile_fields.py"),
     ("007", "Product Templates Collection", "007_product_templates.py"),
+    ("007a", "Seed Product Templates (Master Catalog)", "007a_seed_product_templates.py"),
 ]
 
 def run_migration(number, name, filename):

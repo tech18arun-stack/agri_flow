@@ -54,22 +54,20 @@ class _WholesaleBuyingScreenState extends State<WholesaleBuyingScreen> {
                     Container(
                       height: 240,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [C.primary, C.primaryContainer],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: C.background,
                       ),
                     ),
                     Positioned(
-                      top: -50,
-                      right: -50,
+                      top: -100,
+                      right: -100,
                       child: Container(
-                        width: 200,
-                        height: 200,
+                        width: 400,
+                        height: 400,
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.05)),
+                            gradient: RadialGradient(
+                              colors: [C.primary.withValues(alpha: 0.15), Colors.transparent],
+                            )),
                       ),
                     ),
                     Padding(
@@ -80,25 +78,25 @@ class _WholesaleBuyingScreenState extends State<WholesaleBuyingScreen> {
                           const Text(
                             'MARKET INTELLIGENCE',
                             style: TextStyle(
-                                color: C.tertiaryFixed,
+                                color: C.primary,
                                 fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w900,
                                 letterSpacing: 2),
                           ),
                           const SizedBox(height: 8),
                           const Text(
                             'WHOLESALE DEALS',
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
+                                color: C.onSurface,
+                                fontSize: 32,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: -1),
+                                letterSpacing: -1.5),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Direct procurement from verified farms.',
                             style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: C.onSurfaceVariant.withValues(alpha: 0.6),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500),
                           ),
@@ -188,7 +186,7 @@ class _WholesaleBuyingScreenState extends State<WholesaleBuyingScreen> {
                     ),
                   ),
                 ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
         );
@@ -208,22 +206,25 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
+      child: InteractiveCard(
+        scaleFactor: 0.95,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? C.primary : Colors.white,
+            color: isActive ? C.primary : C.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(20),
             border:
-                Border.all(color: isActive ? C.primary : Colors.grey.shade200),
+                Border.all(color: isActive ? C.primary : C.outlineVariant.withValues(alpha: 0.5)),
+            boxShadow: isActive ? [
+              BoxShadow(color: C.primary.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))
+            ] : [],
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: isActive ? Colors.white : Colors.grey.shade700,
-              fontWeight: FontWeight.bold,
+              color: isActive ? Colors.white : C.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
               fontSize: 12,
             ),
           ),
@@ -249,15 +250,16 @@ class _WholesaleDealCardModern extends StatelessWidget {
 
     return InteractiveCard(
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          color: C.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.5)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 10)),
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 30,
+                offset: const Offset(0, 15)),
           ],
         ),
         child: Column(
@@ -273,7 +275,7 @@ class _WholesaleDealCardModern extends StatelessWidget {
                   child:
                       const Icon(Icons.inventory_2_rounded, color: C.primary),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,19 +284,20 @@ class _WholesaleDealCardModern extends StatelessWidget {
                           style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 18,
-                              color: Color(0xFF1e1b4b),
+                              color: C.onSurface,
                               letterSpacing: -0.5)),
+                      const SizedBox(height: 4),
                       Text('${products.length} Farm Offers Available',
                           style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
+                              color: C.onSurfaceVariant.withValues(alpha: 0.5),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             Row(
               children: [
                 _StatTile(
@@ -306,24 +309,23 @@ class _WholesaleDealCardModern extends StatelessWidget {
                     label: 'TOTAL YIELD', value: '${totalQty.toInt()} KG'),
               ],
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: C.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
+            const SizedBox(height: 24),
+            InteractiveCard(
+              onTap: () {},
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                    color: C.primary,
+                    borderRadius: BorderRadius.circular(16)),
+                child: const Center(
+                  child: Text('VIEW PROCUREMENT DETAILS',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          letterSpacing: 1)),
                 ),
-                child: const Text('VIEW PROCUREMENT DETAILS',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 1)),
               ),
             ),
           ],
@@ -346,16 +348,17 @@ class _StatTile extends StatelessWidget {
         children: [
           Text(label,
               style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 8,
                   fontWeight: FontWeight.w800,
-                  color: Colors.grey.shade400,
+                  color: C.onSurfaceVariant.withValues(alpha: 0.5),
                   letterSpacing: 1)),
           const SizedBox(height: 4),
           Text(value,
               style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF1e1b4b))),
+                  color: C.onSurface,
+                  letterSpacing: -0.5)),
         ],
       ),
     );

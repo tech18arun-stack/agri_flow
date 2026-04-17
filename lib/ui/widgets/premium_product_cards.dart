@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
+import '../../../../core/utils/image_url_utils.dart';
 import '../../../../data/models.dart';
 
 // ==================== TAP ANIMATION WRAPPER ====================
@@ -122,7 +123,7 @@ class PremiumProductCard extends StatelessWidget {
                               ? ClipRRect(
                                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                                   child: CachedNetworkImage(
-                                    imageUrl: product.imageUrl!,
+                                    imageUrl: ImageUrlUtils.normalizeImageUrl(product.imageUrl!),
                                     fit: BoxFit.cover,
                                     width: double.infinity,
                                     height: double.infinity,
@@ -132,7 +133,7 @@ class PremiumProductCard extends StatelessWidget {
                                         child: Icon(
                                           _getCategoryIcon(product.category),
                                           size: compact ? 36 : 48,
-                                          color: C.primary.withValues(alpha: 0.25),
+                                          color: C.primary.withValues(alpha: 0.15),
                                         ),
                                       ),
                                     ),
@@ -142,7 +143,7 @@ class PremiumProductCard extends StatelessWidget {
                                         child: Icon(
                                           _getCategoryIcon(product.category),
                                           size: compact ? 36 : 48,
-                                          color: C.primary.withValues(alpha: 0.25),
+                                          color: C.primary.withValues(alpha: 0.15),
                                         ),
                                       ),
                                     ),
@@ -190,16 +191,32 @@ class PremiumProductCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            product.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: compact ? 12 : 13,
-                              fontWeight: FontWeight.w800,
-                              color: C.onSurface,
-                            ),
-                          ),
+                           Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               Text(
+                                 product.name,
+                                 maxLines: 1,
+                                 overflow: TextOverflow.ellipsis,
+                                 style: TextStyle(
+                                   fontSize: compact ? 12 : 13,
+                                   fontWeight: FontWeight.w800,
+                                   color: C.onSurface,
+                                 ),
+                               ),
+                               if (product.nameTa.isNotEmpty)
+                                 Text(
+                                   product.nameTa,
+                                   maxLines: 1,
+                                   overflow: TextOverflow.ellipsis,
+                                   style: TextStyle(
+                                     fontSize: compact ? 10 : 11,
+                                     fontWeight: FontWeight.w600,
+                                     color: C.primary,
+                                   ),
+                                 ),
+                             ],
+                           ),
                           if (showFarmerName && !compact) ...[
                             const SizedBox(height: 4),
                             Text(
@@ -327,7 +344,7 @@ class HorizontalProductCard extends StatelessWidget {
                               ? ClipRRect(
                                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                                   child: CachedNetworkImage(
-                                    imageUrl: product.imageUrl!,
+                                    imageUrl: ImageUrlUtils.normalizeImageUrl(product.imageUrl!),
                                     fit: BoxFit.cover,
                                     width: double.infinity,
                                     height: double.infinity,
@@ -337,7 +354,7 @@ class HorizontalProductCard extends StatelessWidget {
                                         child: Icon(
                                           _getCategoryIcon(product.category),
                                           size: 48,
-                                          color: C.primary.withValues(alpha: 0.25),
+                                          color: C.primary.withValues(alpha: 0.15),
                                         ),
                                       ),
                                     ),
@@ -347,7 +364,7 @@ class HorizontalProductCard extends StatelessWidget {
                                         child: Icon(
                                           _getCategoryIcon(product.category),
                                           size: 48,
-                                          color: C.primary.withValues(alpha: 0.25),
+                                          color: C.primary.withValues(alpha: 0.15),
                                         ),
                                       ),
                                     ),
@@ -399,15 +416,31 @@ class HorizontalProductCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            product.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: C.onSurface,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: C.onSurface,
+                                ),
+                              ),
+                              if (product.nameTa.isNotEmpty)
+                                Text(
+                                  product.nameTa,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: C.primary,
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -548,7 +581,7 @@ class _AddToCartButton extends StatelessWidget {
           context.read<CartProvider>().addToCart(product);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${product.name} added to cart'),
+              content: Text('${product.name} | ${product.nameTa} added to cart'),
               duration: const Duration(seconds: 1),
               behavior: SnackBarBehavior.floating,
               backgroundColor: C.primary,

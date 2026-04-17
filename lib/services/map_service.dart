@@ -9,13 +9,12 @@ class MapService {
 
   static MapService get instance => _instance;
 
-  // MapTiler API Key - Replace with your own key from maptiler.com
-  // Your API key was exposed in screenshot. Please regenerate it at maptiler.com/dashboard
-  static const String maptilerApiKey = 'eBVGyj1xRKZtAPdAnvmv';
+  // MapTiler API Key (Dynamic)
+  static String maptilerApiKey = '';
   
-  // HiDPI tile URL for better quality on mobile
+  // HiDPI tile URL for better quality on mobile - using Streets v2
   static String get tileUrl => 
-      'https://api.maptiler.com/maps/streets-v4/256/{z}/{x}/{y}@2x.png?key=$maptilerApiKey';
+      'https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}@2x.png?key=$maptilerApiKey';
 
   // Tamil Nadu center coordinates
   static const LatLng tamilNaduCenter = LatLng(11.1271, 78.6569);
@@ -44,9 +43,14 @@ class MapService {
         return null;
       }
 
+      // Add safety timeout to prevent app hanging
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 15),
+        ),
+      ).timeout(const Duration(seconds: 15));
+      
       debugPrint('📍 Location: ${position.latitude}, ${position.longitude}');
       return LatLng(position.latitude, position.longitude);
     } catch (e) {

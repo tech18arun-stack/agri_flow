@@ -104,6 +104,20 @@ class AuthService {
     await _svc.account.deleteSession(sessionId: 'current');
   }
 
+  /// Request password recovery email
+  Future<bool> createRecovery({required String email, required String url}) async {
+    try {
+      await _svc.account.createRecovery(
+        email: email,
+        url: url,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Recovery error: $e');
+      return false;
+    }
+  }
+
   /// Update user role
   Future<void> updateRole(UserRole role) async {
     await _svc.account.updatePrefs(prefs: {'role': role.name});

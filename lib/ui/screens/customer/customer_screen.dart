@@ -5,9 +5,8 @@ import '../../../providers/providers.dart';
 import '../../../data/models.dart';
 import 'features/customer_home_screen.dart';
 import 'features/all_products_screen.dart';
-import 'features/deals_offers_screen.dart';
 import 'features/trending_best_sellers_screen.dart';
-import 'widgets/floating_cart_bar.dart';
+import 'features/cart_screen.dart';
 import '../../../widgets/floating_glass_nav_bar.dart';
 
 class CustomerScreen extends StatefulWidget {
@@ -21,12 +20,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
   int _currentIndex = 0;
   final PageStorageBucket _bucket = PageStorageBucket();
 
-  final List<Widget> _screens = const [
-    CustomerHomeScreen(),
-    AllProductsScreen(),
-    DealsAndOffersScreen(),
-    TrendingAndBestSellersScreen(),
-  ];
 
   @override
   void initState() {
@@ -45,7 +38,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
     // Double-tap same tab → could trigger scroll-to-top later
     if (_currentIndex == index) {
-      // TODO: Add scroll-to-top via ScrollController in each screen
+      // Feature requested: Add scroll-to-top via ScrollController in each screen
       return;
     }
 
@@ -54,33 +47,44 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageStorage(
-        bucket: _bucket,
-        child: IndexedStack(
-          index: _currentIndex,
-          children: _screens.map((screen) {
-            if (screen is CustomerHomeScreen) {
-              return CustomerHomeScreen(onProductTap: _onProductTap);
-            }
-            return screen;
-          }).toList(),
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          _onTabChange(0);
+        }
+      },
+      child: Scaffold(
+        body: PageStorage(
+          bucket: _bucket,
+          child: IndexedStack(
+            index: _currentIndex,
+            children: [
+              CustomerHomeScreen(onProductTap: _onProductTap),
+              const AllProductsScreen(),
+              const TrendingAndBestSellersScreen(),
+              const CartScreen(),
+            ],
+          ),
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        bottomNavigationBar: FloatingGlassNavBar(
+          currentIndex: _currentIndex,
+          onTap: _onTabChange,
+          items: [
+            FloatingGlassNavItem(icon: Icons.home_rounded, label: 'Home'),
+            FloatingGlassNavItem(icon: Icons.search_rounded, label: 'Explore'),
+            FloatingGlassNavItem(icon: Icons.trending_up_rounded, label: 'Hot'),
+            FloatingGlassNavItem(
+                icon: Icons.shopping_cart_rounded,
+                label: 'Cart',
+                badge: context.watch<CartProvider>().itemCount),
+          ],
+        ),
+        extendBody: true,
+        extendBodyBehindAppBar: false,
       ),
-      floatingActionButton: const FloatingCartBar(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: FloatingGlassNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabChange,
-        items: [
-          FloatingGlassNavItem(icon: Icons.home_rounded, label: 'Home'),
-          FloatingGlassNavItem(icon: Icons.search_rounded, label: 'Explore'),
-          FloatingGlassNavItem(icon: Icons.local_offer_rounded, label: 'Deals'),
-          FloatingGlassNavItem(icon: Icons.trending_up_rounded, label: 'Hot'),
-        ],
-      ),
-      extendBody: true,
-      extendBodyBehindAppBar: false,
     );
   }
 }

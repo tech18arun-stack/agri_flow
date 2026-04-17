@@ -8,6 +8,10 @@ import '../../../widgets/premium_product_cards.dart';
 import 'all_products_screen.dart';
 import '../../../../widgets/interactive_card.dart';
 import 'flower_prices_public_screen.dart';
+import '../../../../widgets/agri_map.dart';
+import '../../map/product_map_screen.dart';
+import '../../../../widgets/map_location_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 class _ResponsiveBreakpoints {
   static int gridCrossAxisCount(double width) {
@@ -104,9 +108,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             controller: _scrollController,
             slivers: [
               // Modern Glassmorphism Sliver Header
-              _ModernSliverHeader(
-                location: _selectedLocation,
-                onLocationTap: _showLocationPicker,
+              Consumer<LocationProvider>(
+                builder: (context, locProvider, _) {
+                  return _ModernSliverHeader(
+                    location: locProvider.locality,
+                    onLocationTap: _showLocationPicker,
+                    onMapTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProductMapScreen(),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
 
               // Banner Carousel
@@ -250,6 +266,92 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 const SliverToBoxAdapter(child: SizedBox(height: 20)),
               ],
 
+              // Farms Near You Map Section
+              _SectionHeader(
+                title: '📍 Farms Near You',
+                subtitle: 'Explore local farms on the map',
+                action: 'Full Map',
+                onActionTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProductMapScreen()),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: InteractiveCard(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProductMapScreen()),
+                    ),
+                    child: Container(
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: Stack(
+                          children: [
+                            const AgriMap(
+                              interactive: false,
+                              initialZoom: 10,
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.4),
+                                    Colors.transparent,
+                                  ],
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                ),
+                              ),
+                            ),
+                            const Positioned(
+                              bottom: 16,
+                              left: 16,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'TAP TO EXPLORE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Discover hidden gems nearby',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
               // Organic Products Section
               if (organicProducts.isNotEmpty) ...[
                 _SectionHeader(
@@ -333,6 +435,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   void _showLocationPicker() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -340,23 +444,61 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Select Delivery Location',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 16),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text('Quick select or pick a precise point on map', 
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+            const SizedBox(height: 24),
+            
+            // Map Picker Option
+            ListTile(
+              onTap: () async {
+                Navigator.pop(context);
+                final LatLng? result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MapLocationPicker(title: 'Pin Delivery Address')),
+                );
+                if (result != null && mounted) {
+                  context.read<LocationProvider>().setManualPosition(result);
+                  // Save to user profile in database
+                  context.read<AuthProvider>().updateProfile(
+                    lat: result.latitude,
+                    lng: result.longitude,
+                  );
+                }
+              },
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.map_rounded, color: Colors.blue, size: 20),
+              ),
+              title: const Text('Pick Precisely on Map', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Move pin to your exact building', style: TextStyle(fontSize: 11)),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+            ),
+            
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Divider(),
+            ),
+
             ...['Madurai', 'Chennai', 'Coimbatore', 'Trichy', 'Salem']
                 .map((loc) {
               return ListTile(
                 leading: Icon(Icons.location_on,
                     color: _selectedLocation == loc ? C.primary : Colors.grey),
-                title: Text(loc),
+                title: Text(loc, style: const TextStyle(fontWeight: FontWeight.w600)),
                 trailing: _selectedLocation == loc
                     ? const Icon(Icons.check_circle, color: C.primary)
                     : null,
                 onTap: () {
                   setState(() => _selectedLocation = loc);
+                  context.read<LocationProvider>().setManualLocality(loc);
                   Navigator.pop(context);
                 },
               );
             }),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -371,10 +513,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 class _ModernSliverHeader extends StatelessWidget {
   final String location;
   final VoidCallback onLocationTap;
+  final VoidCallback onMapTap;
 
   const _ModernSliverHeader({
     required this.location,
     required this.onLocationTap,
+    required this.onMapTap,
   });
 
   @override
@@ -488,6 +632,19 @@ class _ModernSliverHeader extends StatelessWidget {
                           ],
                         );
                       },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: onMapTap,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.map_rounded,
+                          color: Colors.white, size: 20),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -740,10 +897,14 @@ class _CategoryStrip extends StatelessWidget {
         'label': 'Flowers',
         'color': const Color(0xFF9C27B0)
       },
-      {'icon': Icons.eco, 'label': 'Organic', 'color': const Color(0xFF009688)},
       {
-        'icon': Icons.shopping_basket,
-        'label': 'Staples',
+        'icon': Icons.eco,
+        'label': 'Organic',
+        'color': const Color(0xFF009688)
+      },
+      {
+        'icon': Icons.inventory_2,
+        'label': 'Others',
         'color': const Color(0xFF795548)
       },
     ];

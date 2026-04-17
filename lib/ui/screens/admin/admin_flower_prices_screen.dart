@@ -6,7 +6,6 @@ import '../../../providers/providers.dart';
 import '../../../data/flower_models.dart';
 
 const _kFlowerPink = Color(0xFFdb2777);
-const _kFlowerPinkLight = Color(0xFFfce7f3);
 
 class AdminFlowerPricesScreen extends StatefulWidget {
   const AdminFlowerPricesScreen({super.key});
@@ -16,15 +15,29 @@ class AdminFlowerPricesScreen extends StatefulWidget {
       _AdminFlowerPricesScreenState();
 }
 
-class _AdminFlowerPricesScreenState extends State<AdminFlowerPricesScreen> {
+class _AdminFlowerPricesScreenState extends State<AdminFlowerPricesScreen> with SingleTickerProviderStateMixin {
   DateTime _selectedDate = DateTime.now();
   String _filterDistrict = 'All';
   String _filterStatus = 'All';
+  late AnimationController _gridController;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    _gridController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _load();
+      _gridController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _gridController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -38,27 +51,15 @@ class _AdminFlowerPricesScreenState extends State<AdminFlowerPricesScreen> {
     final pricesProv = context.watch<FlowerPriceProvider>();
     final allPrices = pricesProv.allPrices;
 
-    // Apply filters
     final filtered = allPrices.where((p) {
-      if (_filterDistrict != 'All' && p.district != _filterDistrict) {
-        return false;
-      }
-      if (_filterStatus != 'All' && p.status != _filterStatus.toLowerCase()) {
-        return false;
-      }
+      if (_filterDistrict != 'All' && p.district != _filterDistrict) return false;
+      if (_filterStatus != 'All' && p.status != _filterStatus.toLowerCase()) return false;
       return true;
     }).toList();
 
-    // Summary by district
     final districtSummary = <String, _DistrictSummary>{};
     for (final p in allPrices) {
-      districtSummary.putIfAbsent(
-          p.district,
-          () => _DistrictSummary(
-              district: p.district,
-              total: 0,
-              published: 0,
-              draft: 0));
+      districtSummary.putIfAbsent(p.district, () => _DistrictSummary(district: p.district, total: 0, published: 0, draft: 0));
       final s = districtSummary[p.district]!;
       districtSummary[p.district] = _DistrictSummary(
         district: p.district,
@@ -68,177 +69,214 @@ class _AdminFlowerPricesScreenState extends State<AdminFlowerPricesScreen> {
       );
     }
 
+    final sortedDistricts = districtSummary.values.toList()..sort((a, b) => b.total.compareTo(a.total));
     final districts = ['All', ...TamilNaduDistricts.names];
-    final publishedCount = allPrices.where((p) => p.isPublished).length;
-    final draftCount = allPrices.where((p) => p.isDraft).length;
 
     return Scaffold(
       backgroundColor: C.background,
       body: pricesProv.loading
           ? const Center(child: CircularProgressIndicator(color: _kFlowerPink))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header + Date Selector
-                  _buildHeader(publishedCount, draftCount, allPrices.length),
-                  const SizedBox(height: 20),
-
-                  // District overview cards
-                  if (districtSummary.isNotEmpty) ...[
-                    const Text('District Overview',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 12),
-                    _buildDistrictCards(districtSummary),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Filters row
-                  _buildFilters(districts),
-                  const SizedBox(height: 16),
-
-                  // Data Table
-                  _buildTable(filtered),
-                ],
-              ),
+          : CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildSliverHeader(allPrices.length, allPrices.where((p) => p.isPublished).length),
+                
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader('Regional Coverage', 'Publishing status across districts'),
+                        const SizedBox(height: 16),
+                        _buildDistrictGrid(sortedDistricts),
+                        const SizedBox(height: 32),
+                        
+                        _buildSectionHeader('Global Inventory', 'Manage flower pricing entries'),
+                        const SizedBox(height: 16),
+                        _buildFiltersRow(districts),
+                        const SizedBox(height: 20),
+                        _buildPriceTable(filtered),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
     );
   }
 
-  Widget _buildHeader(int published, int draft, int total) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_kFlowerPink, Color(0xFF7c3aed)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildSectionHeader(String title, String sub) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: C.onSurface)),
+        Text(sub, style: TextStyle(fontSize: 12, color: C.onSurfaceVariant.withValues(alpha: 0.6))),
+      ],
+    );
+  }
+
+  Widget _buildSliverHeader(int total, int published) {
+    return SliverAppBar(
+      expandedHeight: 180.0,
+      backgroundColor: C.primary,
+      floating: false,
+      pinned: true,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_kFlowerPink, Color(0xFF7c3aed)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+            Positioned(
+              right: -50,
+              top: -50,
+              child: Opacity(
+                opacity: 0.1,
+                child: Text('🌸', style: TextStyle(fontSize: 200)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Flower Price Monitor',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildHeaderChip('$total Entries', Icons.list_alt_rounded),
+                      const SizedBox(width: 12),
+                      _buildHeaderChip('$published Published', Icons.check_circle_outline_rounded),
+                      const Spacer(),
+                      _buildDateSelector(),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+
+  Widget _buildHeaderChip(String text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
-          const Text('🌸', style: TextStyle(fontSize: 32)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Flower Price Monitor',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900)),
-                Text(
-                  '$published published · $draft draft · $total total',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              InkWell(
-                onTap: _pickDate,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today,
-                          color: Colors.white, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        DateFormat('d MMM yyyy').format(_selectedDate),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh, size: 14),
-                label: const Text('Refresh'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: _kFlowerPink,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
-                  textStyle: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 8),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 
-  Widget _buildDistrictCards(Map<String, _DistrictSummary> summaries) {
-    final sorted = summaries.values.toList()
-      ..sort((a, b) => b.total.compareTo(a.total));
+  Widget _buildDateSelector() {
+    return InkWell(
+      onTap: _pickDate,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, color: _kFlowerPink, size: 16),
+            const SizedBox(width: 10),
+            Text(
+              DateFormat('d MMM yyyy').format(_selectedDate),
+              style: const TextStyle(color: _kFlowerPink, fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDistrictGrid(List<_DistrictSummary> summaries) {
     return SizedBox(
-      height: 90,
+      height: 110,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: sorted.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        physics: const BouncingScrollPhysics(),
+        itemCount: summaries.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (_, i) {
-          final s = sorted[i];
-          final completion =
-              s.total == 0 ? 0.0 : s.published / s.total;
+          final s = summaries[i];
+          final completed = s.total > 0 && s.published == s.total;
+          final pct = s.total == 0 ? 0.0 : s.published / s.total;
+          
           return Container(
-            width: 150,
-            padding: const EdgeInsets.all(12),
+            width: 180,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: C.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                  color: completion == 1
-                      ? Colors.green.withValues(alpha: 0.4)
-                      : _kFlowerPink.withValues(alpha: 0.2)),
+                color: completed ? Colors.green.withValues(alpha: 0.2) : C.outlineVariant.withValues(alpha: 0.2),
+                width: 1.5,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(s.district,
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w800),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                const Spacer(),
-                LinearProgressIndicator(
-                  value: completion,
-                  backgroundColor:
-                      _kFlowerPink.withValues(alpha: 0.1),
-                  color: completion == 1
-                      ? Colors.green
-                      : _kFlowerPink,
-                  minHeight: 4,
-                  borderRadius: BorderRadius.circular(4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(s.district, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13), overflow: TextOverflow.ellipsis),
+                    ),
+                    if (completed)
+                      const Icon(Icons.verified_rounded, color: Colors.green, size: 16),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text('${s.published}/${s.total} published',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: completion == 1
-                            ? Colors.green.shade700
-                            : C.onSurfaceVariant)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${s.published}/${s.total} items', style: TextStyle(fontSize: 11, color: C.onSurfaceVariant.withValues(alpha: 0.7), fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: pct,
+                        minHeight: 6,
+                        backgroundColor: C.surfaceContainerLow,
+                        color: completed ? Colors.green : _kFlowerPink,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           );
@@ -247,76 +285,105 @@ class _AdminFlowerPricesScreenState extends State<AdminFlowerPricesScreen> {
     );
   }
 
-  Widget _buildFilters(List<String> districts) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        // District filter
-        SizedBox(
-          width: 220,
-          child: DropdownButtonFormField<String>(
+  Widget _buildFiltersRow(List<String> districts) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterDropdown(
+            label: 'District',
             value: _filterDistrict,
-            decoration: InputDecoration(
-              labelText: 'District',
-              prefixIcon: const Icon(Icons.location_on, size: 18),
-              filled: true,
-              fillColor: C.surfaceContainerLow,
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            items: districts
-                .map((d) => DropdownMenuItem(value: d, child: Text(d)))
-                .toList(),
+            items: districts,
             onChanged: (v) => setState(() => _filterDistrict = v ?? 'All'),
+            width: 200,
           ),
-        ),
-        // Status filter
-        SizedBox(
-          width: 160,
-          child: DropdownButtonFormField<String>(
+          const SizedBox(width: 16),
+          _buildFilterDropdown(
+            label: 'Status',
             value: _filterStatus,
-            decoration: InputDecoration(
-              labelText: 'Status',
-              prefixIcon: const Icon(Icons.flag, size: 18),
-              filled: true,
-              fillColor: C.surfaceContainerLow,
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            items: ['All', 'Published', 'Draft']
-                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                .toList(),
+            items: ['All', 'Published', 'Draft'],
             onChanged: (v) => setState(() => _filterStatus = v ?? 'All'),
+            width: 150,
           ),
-        ),
-      ],
+          const SizedBox(width: 16),
+          _buildActionButton(
+            label: 'Sync Now',
+            icon: Icons.sync_rounded,
+            onPressed: _load,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildTable(List<FlowerPriceEntry> entries) {
+  Widget _buildFilterDropdown({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+    double width = 150,
+  }) {
+    return Container(
+      width: width,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: C.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: C.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          isExpanded: true,
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({required String label, required IconData icon, required VoidCallback onPressed}) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: _kFlowerPink.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _kFlowerPink.withValues(alpha: 0.2)),
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(14),
+        child: Row(
+          children: [
+            Icon(icon, color: _kFlowerPink, size: 18),
+            const SizedBox(width: 10),
+            Text(label, style: const TextStyle(color: _kFlowerPink, fontWeight: FontWeight.w800, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPriceTable(List<FlowerPriceEntry> entries) {
     if (entries.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(32),
+        height: 200,
+        width: double.infinity,
         decoration: BoxDecoration(
           color: C.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3), style: BorderStyle.none),
         ),
         child: const Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('🌸', style: TextStyle(fontSize: 48)),
+              Text('🔍', style: TextStyle(fontSize: 32)),
               SizedBox(height: 12),
-              Text('No price data for selected filters',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('No matches for current filters', style: TextStyle(fontWeight: FontWeight.w700, color: C.onSurfaceVariant)),
             ],
           ),
         ),
@@ -326,96 +393,123 @@ class _AdminFlowerPricesScreenState extends State<AdminFlowerPricesScreen> {
     return Container(
       decoration: BoxDecoration(
         color: C.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: C.outlineVariant.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(color: C.onSurface.withValues(alpha: 0.05), blurRadius: 30, offset: const Offset(0, 10)),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(_kFlowerPinkLight),
-            dataRowMinHeight: 52,
-            columnSpacing: 24,
+            headingRowColor: WidgetStateProperty.all(C.surfaceContainerLow.withValues(alpha: 0.5)),
+            dataRowMinHeight: 70,
+            columnSpacing: 32,
             columns: const [
-              DataColumn(label: Text('Flower', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('District', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('Min ₹', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('Max ₹', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('Avg ₹', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('Unit', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('Updated By', style: TextStyle(fontWeight: FontWeight.w800))),
-              DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.w800))),
+              DataColumn(label: Text('Flowering Resource', style: TextStyle(fontWeight: FontWeight.w900))),
+              DataColumn(label: Text('Region', style: TextStyle(fontWeight: FontWeight.w900))),
+              DataColumn(label: Text('Range (₹)', style: TextStyle(fontWeight: FontWeight.w900))),
+              DataColumn(label: Text('Performance', style: TextStyle(fontWeight: FontWeight.w900))),
+              DataColumn(label: Text('Unit', style: TextStyle(fontWeight: FontWeight.w900))),
+              DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.w900))),
+              DataColumn(label: Text('Controls', style: TextStyle(fontWeight: FontWeight.w900))),
             ],
-            rows: entries.map((entry) {
-              return DataRow(cells: [
-                DataCell(Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(entry.flowerName,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(entry.flowerNameTa,
-                        style: const TextStyle(
-                            fontSize: 11, color: C.onSurfaceVariant)),
-                  ],
-                )),
-                DataCell(Text(entry.district)),
-                DataCell(Text('₹${entry.priceMin.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, color: Colors.green))),
-                DataCell(Text('₹${entry.priceMax.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, color: Colors.red))),
-                DataCell(Text('₹${entry.avgPrice.toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700))),
-                DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _kFlowerPink.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(entry.unit,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: _kFlowerPink)),
-                  ),
-                ),
-                DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: entry.isPublished
-                          ? Colors.green.withValues(alpha: 0.12)
-                          : Colors.orange.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      entry.status.toUpperCase(),
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: entry.isPublished
-                              ? Colors.green.shade700
-                              : Colors.orange.shade700),
-                    ),
-                  ),
-                ),
-                DataCell(Text(entry.updatedByName ?? '—',
-                    style: const TextStyle(fontSize: 12))),
-                DataCell(Text(
-                  entry.createdAt != null
-                      ? DateFormat('HH:mm').format(entry.createdAt!)
-                      : '—',
-                  style: const TextStyle(fontSize: 12),
-                )),
-              ]);
-            }).toList(),
+            rows: entries.map((e) => _buildDataRow(e)).toList(),
           ),
         ),
+      ),
+    );
+  }
+
+  DataRow _buildDataRow(FlowerPriceEntry entry) {
+    return DataRow(
+      cells: [
+        DataCell(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(entry.flowerName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              Text(entry.flowerNameTa, style: TextStyle(fontSize: 10, color: C.onSurfaceVariant.withValues(alpha: 0.5))),
+            ],
+          ),
+        ),
+        DataCell(Text(entry.district, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+        DataCell(
+          Row(
+            children: [
+              Text('₹${entry.priceMin.toInt()}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w700)),
+              Text(' — ', style: TextStyle(color: C.onSurfaceVariant.withValues(alpha: 0.3))),
+              Text('₹${entry.priceMax.toInt()}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+        DataCell(
+          Text('₹${entry.avgPrice.toInt()}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+        ),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: C.surfaceContainerLow, borderRadius: BorderRadius.circular(8)),
+            child: Text(entry.unit, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: C.onSurfaceVariant)),
+          ),
+        ),
+        DataCell(
+          _buildStatusTag(entry.status),
+        ),
+        DataCell(
+          Row(
+            children: [
+              _buildControlIcon(Icons.edit_note_rounded, C.primary, () => _showEditDialog(entry)),
+              const SizedBox(width: 8),
+              _buildControlIcon(
+                entry.isPublished ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                entry.isPublished ? Colors.orange : Colors.green,
+                () => _toggleStatus(entry),
+              ),
+              const SizedBox(width: 8),
+              _buildControlIcon(Icons.delete_sweep_rounded, Colors.red, () => _confirmDelete(entry)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusTag(String status) {
+    final isPublished = status == 'published';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isPublished ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: isPublished ? Colors.green.shade700 : Colors.orange.shade700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControlIcon(IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 20),
       ),
     );
   }
@@ -426,10 +520,129 @@ class _AdminFlowerPricesScreenState extends State<AdminFlowerPricesScreen> {
       initialDate: _selectedDate,
       firstDate: DateTime(2024),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: _kFlowerPink),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
       _load();
+    }
+  }
+
+  Future<void> _toggleStatus(FlowerPriceEntry entry) async {
+    final newStatus = entry.isPublished ? 'draft' : 'published';
+    final ok = await context.read<FlowerPriceProvider>().updateStatus(entry.docId ?? '', newStatus);
+    if (ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${entry.flowerName} is now $newStatus!'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: C.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    }
+  }
+
+  Future<void> _confirmDelete(FlowerPriceEntry entry) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Confirm Deletion'),
+        content: Text('Remove ${entry.flowerName} price entry for ${entry.district}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, elevation: 0),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true && mounted) {
+      await context.read<FlowerPriceProvider>().deletePrice(entry.docId ?? '');
+    }
+  }
+
+  Future<void> _showEditDialog(FlowerPriceEntry entry) async {
+    final auth = context.read<AuthProvider>();
+    final minCtrl = TextEditingController(text: entry.priceMin.toStringAsFixed(0));
+    final maxCtrl = TextEditingController(text: entry.priceMax.toStringAsFixed(0));
+
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Adjust Pricing', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Resource: ${entry.flowerName}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            Text('Region: ${entry.district}', style: TextStyle(fontSize: 12, color: C.onSurfaceVariant)),
+            const SizedBox(height: 24),
+            TextField(
+              controller: minCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Minimum Price (₹)',
+                filled: true,
+                fillColor: C.surfaceContainerLow,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: maxCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Maximum Price (₹)',
+                filled: true,
+                fillColor: C.surfaceContainerLow,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.all(16),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: C.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+
+    if (res == true && mounted) {
+      final min = double.tryParse(minCtrl.text) ?? entry.priceMin;
+      final max = double.tryParse(maxCtrl.text) ?? entry.priceMax;
+      
+      await context.read<FlowerPriceProvider>().savePrice(
+        flowerId: entry.flowerId,
+        flowerName: entry.flowerName,
+        flowerNameTa: entry.flowerNameTa,
+        district: entry.district,
+        priceMin: min,
+        priceMax: max,
+        unit: entry.unit,
+        updatedById: auth.user?.id ?? 'admin',
+        updatedByName: auth.user?.name ?? 'Admin',
+        status: entry.status,
+      );
     }
   }
 }

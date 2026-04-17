@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
+import '../../../../core/utils/image_url_utils.dart';
 import '../../../../data/models.dart';
 import '../../../../widgets/interactive_card.dart';
 import '../../../../widgets/glass_container.dart';
@@ -349,6 +350,8 @@ class _ProductCard extends StatelessWidget {
   void _showEditDialog(BuildContext context, ProductModel product) {
     final priceCtrl = TextEditingController(text: product.price.toString());
     final qtyCtrl = TextEditingController(text: product.quantity.toString());
+    final imageUrlCtrl = TextEditingController(
+        text: ImageUrlUtils.getDisplayUrl(product.imageUrl ?? ''));
     bool organic = product.organic;
 
     showDialog(
@@ -377,6 +380,68 @@ class _ProductCard extends StatelessWidget {
                       InputDecoration(labelText: 'Quantity (${product.unit})'),
                 ),
                 const SizedBox(height: 12),
+                TextField(
+                  controller: imageUrlCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Image URL (Optional)',
+                    hintText: ImageUrlUtils.getPlaceholderText(),
+                    helperText: ImageUrlUtils.getHelpText(),
+                    suffixIcon: imageUrlCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              imageUrlCtrl.clear();
+                              setDialogState(() {});
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                // Image preview
+                if (imageUrlCtrl.text.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: C.surfaceContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: C.outlineVariant),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(
+                          imageUrl: ImageUrlUtils.normalizeImageUrl(
+                              imageUrlCtrl.text.trim()),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.red.shade50,
+                            child: const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.error_outline,
+                                      color: Colors.red, size: 24),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Failed to load image',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 12),
                 SwitchListTile(
                   title: const Text('Organic'),
                   value: organic,
@@ -391,11 +456,17 @@ class _ProductCard extends StatelessWidget {
                 child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
+                // Normalize the image URL
+                final normalizedImageUrl = imageUrlCtrl.text.trim().isEmpty
+                    ? null
+                    : ImageUrlUtils.normalizeImageUrl(imageUrlCtrl.text.trim());
+
                 await context.read<ProductProvider>().updateProduct(
                       productId: product.id,
                       price: double.tryParse(priceCtrl.text),
                       quantity: double.tryParse(qtyCtrl.text),
                       organic: organic,
+                      imageUrl: normalizedImageUrl,
                     );
                 if (context.mounted) {
                   Navigator.pop(context);

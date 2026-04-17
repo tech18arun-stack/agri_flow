@@ -320,7 +320,9 @@ class PriceEngineProvider extends ChangeNotifier {
     double recommended = agg.avgPrice;
     if (change > 5) {
       recommended = agg.avgPrice * 1.05;
-    } else if (change < -5) recommended = agg.avgPrice * 0.95;
+    } else if (change < -5) {
+      recommended = agg.avgPrice * 0.95;
+    }
     return {
       'recommended': recommended.round(),
       'min': agg.minPrice,

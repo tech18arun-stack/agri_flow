@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:latlong2/latlong.dart';
 import '../../providers/providers.dart';
 import '../../core/constants/colors.dart';
 import '../../core/utils/responsive.dart';
+import '../../core/utils/image_url_utils.dart';
 import '../../widgets/agri_map.dart';
 import '../../services/map_service.dart';
 import '../../data/models.dart';
@@ -71,9 +74,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(color: C.primaryContainer.withValues(alpha: 0.1)),
-                child: Center(
-                  child: Icon(Icons.eco, size: 80, color: C.primary.withValues(alpha: 0.3)),
-                ),
+                child: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: ImageUrlUtils.normalizeImageUrl(p.imageUrl!),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        placeholder: (context, url) => Container(
+                          color: C.surfaceContainer,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: C.surfaceContainer,
+                          child: Center(
+                            child: Icon(Icons.eco, size: 80, color: C.primary.withValues(alpha: 0.3)),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(Icons.eco, size: 80, color: C.primary.withValues(alpha: 0.3)),
+                      ),
               ),
             ),
           ),
@@ -91,9 +112,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(p.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: C.primary)),
+                          Text(p.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: C.primary, letterSpacing: -0.5)),
                           if (p.nameTa.isNotEmpty)
-                            Text(p.nameTa, style: TextStyle(fontSize: 14, color: C.onSurfaceVariant)),
+                            Text(p.nameTa, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0d631b))),
                         ],
                       ),
                     ),
@@ -151,6 +172,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () async {
+                          if (p.farmerPhone != null && p.farmerPhone!.isNotEmpty) {
+                            final url = Uri.parse('tel:${p.farmerPhone}');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Farmer contact not available')),
+                            );
+                          }
+                        },
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: const Color(0xFF0d631b).withValues(alpha: 0.1), shape: BoxShape.circle),
+                          child: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFF0d631b), size: 20),
+                        ),
+                        tooltip: 'Call Farmer',
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(color: C.primaryFixed.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
@@ -164,7 +206,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 // Description
                 const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: C.primary)),
                 const SizedBox(height: 8),
-                Text('Fresh ${p.name.toLowerCase()} harvested from verified farms in ${p.location}. Quality checked and ready for delivery.', style: TextStyle(fontSize: 13, color: C.onSurfaceVariant, height: 1.6)),
+                Text('Fresh ${p.name} ${p.nameTa.isNotEmpty ? " | ${p.nameTa}" : ""} harvested from verified farms in ${p.location}. Quality checked and ready for delivery.', style: TextStyle(fontSize: 13, color: C.onSurfaceVariant, height: 1.6)),
                 const SizedBox(height: 20),
 
                 // Price Comparison (if products available)
@@ -261,9 +303,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     for (int i = 0; i < _quantity; i++) {
                       cart.addToCart(p);
                     }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Added $_quantity ${p.name} to cart')),
-                    );
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       SnackBar(content: Text('Added $_quantity ${p.name} ${p.nameTa.isNotEmpty ? "| ${p.nameTa}" : ""} to cart')),
+                     );
                   },
                   icon: const Icon(Icons.shopping_cart, size: 18),
                   label: const Text('Add to Cart'),

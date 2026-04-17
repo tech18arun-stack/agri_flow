@@ -176,6 +176,8 @@ class AuthProvider extends ChangeNotifier {
     String? municipality,
     String? phone,
     String? address,
+    double? lat,
+    double? lng,
   }) async {
     if (_user == null) return false;
 
@@ -196,6 +198,8 @@ class AuthProvider extends ChangeNotifier {
           if (municipality != null) 'municipality': municipality,
           if (phone != null) 'phone': phone,
           if (address != null) 'address': address,
+          if (lat != null) 'lat': lat,
+          if (lng != null) 'lng': lng,
           'updatedAt': DateTime.now().toIso8601String(),
         },
       );
@@ -224,6 +228,75 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Request account deletion (48 hour grace period)
+  Future<bool> requestAccountDeletion() async {
+    if (_user == null) return false;
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final now = DateTime.now();
+      await _svc.db.updateDocument(
+        databaseId: _svc.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        documentId: _user!.id,
+        data: {
+          'status': 'deletion_requested',
+          'deletionRequestedAt': now.toIso8601String(),
+          'updatedAt': now.toIso8601String(),
+        },
+      );
+
+      // Refresh local user data
+      await _fetchUser();
+      debugPrint('✅ Account deletion requested');
+      return true;
+    } catch (e) {
+      _error = 'Failed to request deletion: $e';
+      debugPrint('❌ Deletion request error: $e');
+      return false;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cancel a pending account deletion request
+  Future<bool> cancelAccountDeletion() async {
+    if (_user == null) return false;
+
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _svc.db.updateDocument(
+        databaseId: _svc.databaseId,
+        collectionId: AppwriteConfig.usersCollectionId,
+        documentId: _user!.id,
+        data: {
+          'status': 'active',
+          'deletionRequestedAt': null,
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+      );
+
+      // Refresh local user data
+      await _fetchUser();
+      debugPrint('✅ Account deletion request cancelled');
+      return true;
+    } catch (e) {
+      _error = 'Failed to cancel deletion: $e';
+      debugPrint('❌ Cancel deletion error: $e');
+      return false;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   /// Update user password
   Future<bool> updatePassword(String newPassword) async {
     try {
@@ -234,6 +307,33 @@ class AuthProvider extends ChangeNotifier {
       _error = 'Failed to update password: $e';
       debugPrint('❌ Password update error: $e');
       return false;
+    }
+  }
+
+  /// Request password recovery email
+  Future<bool> requestPasswordReset(String email) async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final success = await AuthService.instance.createRecovery(
+        email: email,
+        url: 'https://agriflow-app.web.app/auth/reset-password', // Placeholder URL
+      );
+      if (success) {
+        debugPrint('✅ Recovery email sent to $email');
+        return true;
+      } else {
+        _error = 'Failed to send recovery email. Please check the email address.';
+        return false;
+      }
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('Recovery error: $e');
+      return false;
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
   }
 
@@ -254,6 +354,13 @@ class AuthProvider extends ChangeNotifier {
       taluk: doc.data['taluk'] ?? '',
       municipality: doc.data['municipality'] ?? '',
       status: doc.data['status'] ?? 'active',
+      deletionRequestedAt: doc.data['deletionRequestedAt'] != null
+          ? DateTime.tryParse(doc.data['deletionRequestedAt'].toString())
+          : null,
+      phone: doc.data['phone'],
+      address: doc.data['address'],
+      lat: doc.data['lat']?.toDouble(),
+      lng: doc.data['lng']?.toDouble(),
     );
   }
 }

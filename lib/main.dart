@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'core/theme/app_theme.dart';
 import 'data/models.dart';
 import 'providers/providers.dart';
@@ -33,16 +34,53 @@ import 'ui/screens/merchant/features/selling_screen.dart';
 import 'ui/screens/merchant/features/profit_loss_screen.dart';
 import 'ui/web_admin.dart';
 import 'ui/screens/flower_price/flower_price_dashboard.dart';
+import 'services/config_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize dynamic config from local/GitHub
+  await ConfigService.instance.init();
+  
+  // High-level UI error catching to prevent grey screens
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 64),
+              const SizedBox(height: 16),
+              const Text('Something went wrong', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(details.exception.toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => main(), // Simple reload attempt
+                child: const Text('Reload App'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  await AppwriteService.instance.init();
+  
+  try {
+    await AppwriteService.instance.init();
+  } catch (e) {
+    debugPrint('❌ Appwrite init failed: $e');
+  }
+  
   runApp(const AgriFlowApp());
 }
 
@@ -59,6 +97,16 @@ class _AgriFlowAppState extends State<AgriFlowApp> {
   void initState() {
     super.initState();
     _authProvider.init();
+    _requestPermissions();
+  }
+
+  Future<void> _requestPermissions() async {
+    if (!kIsWeb) {
+      await [
+        Permission.location,
+        Permission.notification,
+      ].request();
+    }
   }
 
   @override
@@ -79,6 +127,7 @@ class _AgriFlowAppState extends State<AgriFlowApp> {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FlowerPriceProvider()),
         ChangeNotifierProvider(create: (_) => FlowerCatalogProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
       ],
       child: MaterialApp(
         title: 'Agri Flow | அக்ரி ப்ளோ',

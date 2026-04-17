@@ -38,14 +38,26 @@ class CategoriesBrowsingScreen extends StatelessWidget {
           CategoryData(
             name: 'Fruits',
             icon: Icons.apple,
-            color: const Color(0xFFFF9800),
+            color: const Color(0xFFFF5722),
             products: products.where((p) => p.category == 'fruits').toList(),
           ),
           CategoryData(
             name: 'Grains',
             icon: Icons.grain,
-            color: const Color(0xFF795548),
+            color: const Color(0xFFFFC107),
             products: products.where((p) => p.category == 'grains').toList(),
+          ),
+          CategoryData(
+            name: 'Pulses',
+            icon: Icons.circle,
+            color: const Color(0xFFFF9800),
+            products: products.where((p) => p.category == 'pulses').toList(),
+          ),
+          CategoryData(
+            name: 'Greens',
+            icon: Icons.yard_rounded,
+            color: const Color(0xFF2E7D32),
+            products: products.where((p) => p.category == 'greens').toList(),
           ),
           CategoryData(
             name: 'Spices',
@@ -58,6 +70,36 @@ class CategoriesBrowsingScreen extends StatelessWidget {
             icon: Icons.local_florist,
             color: const Color(0xFF9C27B0),
             products: products.where((p) => p.category == 'flowers').toList(),
+          ),
+          CategoryData(
+            name: 'Tubers',
+            icon: Icons.bakery_dining_rounded,
+            color: const Color(0xFF8D6E63),
+            products: products.where((p) => p.category == 'tubers').toList(),
+          ),
+          CategoryData(
+            name: 'Plantation',
+            icon: Icons.coffee_rounded,
+            color: const Color(0xFF5D4037),
+            products: products.where((p) => p.category == 'plantation').toList(),
+          ),
+          CategoryData(
+            name: 'Oilseeds',
+            icon: Icons.circle_notifications_rounded,
+            color: const Color(0xFFFBC02D),
+            products: products.where((p) => p.category == 'oilseeds').toList(),
+          ),
+          CategoryData(
+            name: 'Industrial',
+            icon: Icons.factory_rounded,
+            color: const Color(0xFF455A64),
+            products: products.where((p) => p.category == 'industrial').toList(),
+          ),
+          CategoryData(
+            name: 'Processed',
+            icon: Icons.liquor,
+            color: const Color(0xFF0097A7),
+            products: products.where((p) => p.category == 'processed').toList(),
           ),
         ];
 

@@ -5,8 +5,11 @@ import '../data/models.dart';
 import '../services/appwrite_service.dart';
 import '../services/appwrite_config.dart';
 
+import '../services/notification_service.dart';
+
 class OrderProvider extends ChangeNotifier {
   final _svc = AppwriteService.instance;
+  final _notifSvc = NotificationService.instance;
   List<OrderModel> _orders = [];
   List<OrderModel> _customerOrders = [];
   bool _loading = false;
@@ -107,10 +110,11 @@ class OrderProvider extends ChangeNotifier {
         'quantity': item.quantity,
       }).toList();
 
+      final docId = ID.unique();
       final doc = await _svc.db.createDocument(
         databaseId: _svc.databaseId,
         collectionId: AppwriteConfig.ordersCollectionId,
-        documentId: ID.unique(),
+        documentId: docId,
         data: {
           'customerId': customerId,
           'customerName': customerName,
@@ -122,6 +126,16 @@ class OrderProvider extends ChangeNotifier {
           'shippingAddress': shippingAddress,
           'createdAt': DateTime.now().toIso8601String(),
         },
+      );
+
+      // Notify Farmer
+      await _notifSvc.create(
+        userId: farmerId,
+        role: 'farmer',
+        title: 'New Order Received!',
+        message: 'Order #$docId from $customerName for ₹${total.toStringAsFixed(0)}',
+        type: 'order',
+        data: docId,
       );
 
       await loadFarmerOrders(farmerId);
@@ -136,7 +150,7 @@ class OrderProvider extends ChangeNotifier {
   }
 
   /// Update order status
-  Future<void> updateOrderStatus(String orderId, String status) async {
+  Future<void> updateOrderStatus(String orderId, String status, String customerId) async {
     try {
       await _svc.db.updateDocument(
         databaseId: _svc.databaseId,
@@ -144,6 +158,15 @@ class OrderProvider extends ChangeNotifier {
         documentId: orderId,
         data: {'status': status},
       );
+
+      // Notify Customer
+      await _notifSvc.sendOrderNotification(
+        userId: customerId,
+        role: 'customer',
+        orderId: orderId,
+        status: status,
+      );
+
       // Reload orders
       if (_orders.isNotEmpty) {
         await loadFarmerOrders(_orders.first.farmerId);

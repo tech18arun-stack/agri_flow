@@ -3,6 +3,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as aw;
 import '../services/appwrite_service.dart';
 import '../services/appwrite_config.dart';
+import '../services/product_template_service.dart';
 import '../data/models.dart';
 
 class AdminProvider extends ChangeNotifier {
@@ -17,6 +18,7 @@ class AdminProvider extends ChangeNotifier {
 
   List<UserModel> _users = [];
   List<ProductModel> _pendingProducts = [];
+  List<ProductModel> _allProducts = [];
   List<ProductTemplateModel> _productTemplates = [];
 
   int get totalFarmers => _totalFarmers;
@@ -27,7 +29,43 @@ class AdminProvider extends ChangeNotifier {
   bool get loading => _loading;
   List<UserModel> get users => _users;
   List<ProductModel> get pendingProducts => _pendingProducts;
+  List<ProductModel> get allProducts => _allProducts;
   List<ProductTemplateModel> get productTemplates => _productTemplates;
+
+  Future<void> loadAllProducts() async {
+    _loading = true;
+    notifyListeners();
+    try {
+      if (!_svc.isInitialized) await _svc.init();
+      final res = await _svc.db.listDocuments(
+        databaseId: _svc.databaseId,
+        collectionId: AppwriteConfig.productsCollectionId,
+        queries: [Query.orderDesc('\$createdAt'), Query.limit(100)],
+      );
+      _allProducts = res.documents.map((doc) => _parseProduct(doc)).toList();
+    } catch (e) {
+      debugPrint('Error loading all products: $e');
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateProduct(String id, Map<String, dynamic> data) async {
+    try {
+      await _svc.db.updateDocument(
+        databaseId: _svc.databaseId,
+        collectionId: AppwriteConfig.productsCollectionId,
+        documentId: id,
+        data: data,
+      );
+      await loadAllProducts();
+      return true;
+    } catch (e) {
+      debugPrint('Error updating product: $e');
+      return false;
+    }
+  }
 
   Future<void> loadStats() async {
     _loading = true;
@@ -146,6 +184,22 @@ class AdminProvider extends ChangeNotifier {
   }
 
   // --- Catalog Management ---
+
+  Future<Map<String, int>> syncProductTemplates() async {
+    _loading = true;
+    notifyListeners();
+    try {
+      final results = await ProductTemplateService.instance.syncFromLocal();
+      await loadProductTemplates();
+      return results;
+    } catch (e) {
+      debugPrint('Sync failed: $e');
+      return {'error': -1};
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> loadProductTemplates() async {
     _loading = true;

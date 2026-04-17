@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../data/models.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class _ResponsiveBreakpoints {
   static double maxContentWidth = 1200;
@@ -42,42 +43,60 @@ class TrendingAndBestSellersScreen extends StatelessWidget {
           // Header
           SliverToBoxAdapter(
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFe91e63), Color(0xFFc2185b)],
-                ),
+                color: C.background,
               ),
-              child: SafeArea(
-                child: Row(
-                  children: [
-                    const Icon(Icons.whatshot, color: Colors.white, size: 28),
-                    const SizedBox(width: 8),
-                    const Text('Trending Now',
-                        style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white)),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.whatshot, color: Color(0xFFEF4444), size: 14),
+                        SizedBox(width: 6),
+                        Text('MARKET HOTLIST', style: TextStyle(color: Color(0xFFEF4444), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Trending & Top Picks',
+                      style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: C.onSurface,
+                          letterSpacing: -1)),
+                  const SizedBox(height: 4),
+                  Text('The highest velocity products across Tamil Nadu today',
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: C.onSurfaceVariant.withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500)),
+                ],
               ),
             ),
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-          // Trending Products
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('🔥 Trending This Week',
+                  const Text('🔥 Dynamic Trending',
                       style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF002b02))),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: C.onSurface,
+                          letterSpacing: -0.5)),
                 ],
               ),
             ),
@@ -88,9 +107,9 @@ class TrendingAndBestSellersScreen extends StatelessWidget {
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.7,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.75,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -110,17 +129,18 @@ class TrendingAndBestSellersScreen extends StatelessWidget {
           // Best Sellers
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const Text('⭐ Best Sellers',
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text('⭐ Performance Leaders',
                   style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF002b02))),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: C.onSurface,
+                      letterSpacing: -0.5)),
             ),
           ),
 
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -164,22 +184,19 @@ class _TrendingProductCard extends StatelessWidget {
           Navigator.pushNamed(context, '/product_detail', arguments: product),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: rank <= 3
-              ? Border.all(
-                  color: rank == 1
-                      ? const Color(0xFFFFD700)
-                      : rank == 2
-                          ? const Color(0xFFC0C0C0)
-                          : const Color(0xFFCD7F32),
-                  width: 2)
-              : null,
+          color: C.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: rank <= 3
+                ? (rank == 1 ? const Color(0xFFFFD700) : (rank == 2 ? const Color(0xFF94A3B8) : const Color(0xFFB45309))).withValues(alpha: 0.5)
+                : C.outlineVariant.withValues(alpha: 0.5),
+            width: rank == 1 ? 2 : 1,
+          ),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4))
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 8))
           ],
         ),
         child: Column(
@@ -195,42 +212,54 @@ class _TrendingProductCard extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(16)),
                   ),
-                  child: Center(
-                    child: Icon(
-                      product.category == 'vegetables'
-                          ? Icons.grass
-                          : product.category == 'fruits'
-                              ? Icons.apple
-                              : Icons.eco,
-                      size: 48,
-                      color: const Color(0xFF002b02).withValues(alpha: 0.3),
-                    ),
-                  ),
+                  child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          child: CachedNetworkImage(
+                            imageUrl: product.imageUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            placeholder: (_, __) => Center(
+                              child: Icon(Icons.eco, size: 48, color: const Color(0xFF002b02).withValues(alpha: 0.1)),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Icon(
+                            product.category == 'vegetables'
+                                ? Icons.grass
+                                : product.category == 'fruits'
+                                    ? Icons.apple
+                                    : Icons.eco,
+                            size: 48,
+                            color: const Color(0xFF002b02).withValues(alpha: 0.3),
+                          ),
+                        ),
                 ),
                 Positioned(
-                  top: 8,
-                  left: 8,
+                  top: 12,
+                  left: 12,
                   child: Container(
-                    width: 28,
-                    height: 28,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: rank <= 3
-                          ? rank == 1
-                              ? const Color(0xFFFFD700)
-                              : rank == 2
-                                  ? const Color(0xFFC0C0C0)
-                                  : const Color(0xFFCD7F32)
-                          : Colors.grey,
-                      borderRadius: BorderRadius.circular(14),
+                      color: (rank <= 3
+                          ? (rank == 1 ? const Color(0xFFFFD700) : (rank == 2 ? const Color(0xFF94A3B8) : const Color(0xFFB45309)))
+                          : Colors.grey.shade400),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Center(
-                      child: Text(
-                        '#$rank',
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white),
-                      ),
+                    child: Text(
+                      '#$rank',
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white),
                     ),
                   ),
                 ),
@@ -239,21 +268,43 @@ class _TrendingProductCard extends StatelessWidget {
 
             // Product Info
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w700)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(product.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w900, color: C.onSurface)),
+                      if (product.nameTa.isNotEmpty)
+                        Text(product.nameTa,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0d631b))),
+                    ],
+                  ),
                   const SizedBox(height: 4),
-                  Text('₹${product.price.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF002b02))),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('₹${product.price.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: C.primary,
+                              letterSpacing: -0.5)),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: C.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                        child: const Icon(Icons.add, size: 14, color: C.primary),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -280,13 +331,14 @@ class _BestSellerCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: C.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4))
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 15,
+                offset: const Offset(0, 6))
           ],
         ),
         child: Row(
@@ -296,22 +348,18 @@ class _BestSellerCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: rank <= 3
-                    ? rank == 1
-                        ? const Color(0xFFFFD700)
-                        : rank == 2
-                            ? const Color(0xFFC0C0C0)
-                            : const Color(0xFFCD7F32)
-                    : Colors.grey,
-                borderRadius: BorderRadius.circular(20),
+                color: (rank <= 3
+                    ? (rank == 1 ? const Color(0xFFFFD700) : (rank == 2 ? const Color(0xFF94A3B8) : const Color(0xFFB45309)))
+                    : Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
                 child: Text(
                   '$rank',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white),
+                      color: rank <= 3 ? Colors.white : Colors.grey.shade600),
                 ),
               ),
             ),
@@ -326,15 +374,28 @@ class _BestSellerCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
-                child: Icon(
-                  product.category == 'vegetables'
-                      ? Icons.grass
-                      : product.category == 'fruits'
-                          ? Icons.apple
-                          : Icons.eco,
-                  size: 28,
-                  color: const Color(0xFF002b02).withValues(alpha: 0.3),
-                ),
+                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(
+                          imageUrl: product.imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Center(
+                            child: Icon(Icons.eco, size: 28, color: const Color(0xFF002b02).withValues(alpha: 0.1)),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          product.category == 'vegetables'
+                              ? Icons.grass
+                              : product.category == 'fruits'
+                                  ? Icons.apple
+                                  : Icons.eco,
+                          size: 28,
+                          color: const Color(0xFF002b02).withValues(alpha: 0.3),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -344,25 +405,41 @@ class _BestSellerCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.name,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 12, color: Colors.amber),
-                      const SizedBox(width: 2),
-                      Text('4.5',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade700)),
-                    ],
+                   Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: C.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text(product.category.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: C.primary, letterSpacing: 0.5)),
                   ),
                   const SizedBox(height: 4),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(product.name,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w900, color: C.onSurface, letterSpacing: -0.5)),
+                      if (product.nameTa.isNotEmpty)
+                        Text(product.nameTa,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0d631b))),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, size: 10, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text('4.9 (120 reviews)',
+                          style: TextStyle(
+                              fontSize: 10, color: C.onSurfaceVariant.withValues(alpha: 0.5), fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Text('₹${product.price.toStringAsFixed(0)}/${product.unit}',
                       style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF002b02))),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: C.primary,
+                          letterSpacing: -1)),
                 ],
               ),
             ),

@@ -1,9 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../data/models.dart';
 import '../../../data/flower_models.dart';
 import '../../../services/appwrite_service.dart';
 import '../../../services/appwrite_config.dart';
+import '../../../widgets/shared_widgets.dart';
 import 'package:appwrite/appwrite.dart';
 
 const _kFlowerPink = Color(0xFFdb2777);
@@ -17,15 +19,26 @@ class AdminPriceUpdatersScreen extends StatefulWidget {
 }
 
 class _AdminPriceUpdatersScreenState
-    extends State<AdminPriceUpdatersScreen> {
+    extends State<AdminPriceUpdatersScreen> with SingleTickerProviderStateMixin {
   List<UserModel> _updaters = [];
   bool _loading = false;
   String? _error;
+  late AnimationController _listController;
 
   @override
   void initState() {
     super.initState();
+    _listController = AnimationController(
+       vsync: this,
+       duration: const Duration(milliseconds: 600),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _listController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -55,6 +68,8 @@ class _AdminPriceUpdatersScreenState
           status: doc.data['status'] ?? 'active',
         );
       }).toList();
+      _listController.reset();
+      _listController.forward();
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ Failed to load price updaters: $e');
@@ -65,86 +80,89 @@ class _AdminPriceUpdatersScreenState
 
   @override
   Widget build(BuildContext context) {
+    final web = isWeb(context);
+    final pad = adaptivePadding(context);
+
     return Scaffold(
       backgroundColor: C.background,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateDialog(context),
         backgroundColor: _kFlowerPink,
-        icon: const Icon(Icons.person_add, color: Colors.white),
-        label: const Text('New Price Updater',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.person_add_rounded, color: Colors.white),
+        label: const Text('New Price Updater', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 10,
       ),
-      body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: _kFlowerPink))
-          : Column(
-              children: [
-                _buildHeader(),
-                if (_error != null)
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                        color: C.errorContainer,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text(_error!,
-                        style: const TextStyle(color: C.error)),
-                  ),
-                Expanded(
-                  child: _updaters.isEmpty
-                      ? _buildEmptyState()
-                      : _buildList(),
-                ),
-              ],
+      body: _loading && _updaters.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: _kFlowerPink))
+          : SingleChildScrollView(
+              padding: pad,
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   _buildHeader(web),
+                   const SizedBox(height: 32),
+                   if (_error != null) _buildErrorMessage(),
+                   if (_updaters.isEmpty && !_loading) 
+                     _buildEmptyState()
+                   else 
+                     _buildList(web),
+                   const SizedBox(height: 60),
+                ],
+              ),
             ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildErrorMessage() {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_kFlowerPink, Color(0xFF7c3aed)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: C.errorContainer.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: C.error.withValues(alpha: 0.2))),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.manage_accounts,
-                color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Price Updater Accounts',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900)),
-                Text(
-                  '${_updaters.length} accounts · Only admin can create these',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _load,
-          ),
+          const Icon(Icons.error_outline_rounded, color: C.error),
+          const SizedBox(width: 12),
+          Expanded(child: Text(_error!, style: const TextStyle(color: C.error, fontSize: 13, fontWeight: FontWeight.w600))),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool web) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Personnel Registry',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: C.onSurface, letterSpacing: -1),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Managing specialized price update accounts for market monitoring',
+              style: TextStyle(fontSize: 13, color: C.onSurfaceVariant.withValues(alpha: 0.6)),
+            ),
+          ],
+        ),
+        _buildRefreshButton(),
+      ],
+    );
+  }
+
+  Widget _buildRefreshButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kFlowerPink.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kFlowerPink.withValues(alpha: 0.1)),
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.refresh_rounded, color: _kFlowerPink, size: 20),
+        onPressed: _load,
       ),
     );
   }
@@ -152,40 +170,21 @@ class _AdminPriceUpdatersScreenState
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(vertical: 80),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: _kFlowerPink.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Text('🌸', style: TextStyle(fontSize: 48)),
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(color: _kFlowerPink.withValues(alpha: 0.05), shape: BoxShape.circle),
+              child: const Icon(Icons.manage_accounts_rounded, size: 64, color: _kFlowerPink),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'No Price Updaters Yet',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-            ),
+            const Text('Registry Vacant', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            const Text(
-              'Create accounts for your price handling team.\nThey will log in at farmer.websitescorp.com\nand land directly on the Flower Price Dashboard.',
+            Text(
+              'No specialized update accounts have been registered yet.\nCreate an account to delegate market pricing tasks.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: C.onSurfaceVariant, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _showCreateDialog(context),
-              icon: const Icon(Icons.person_add),
-              label: const Text('Create First Account'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kFlowerPink,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 14),
-              ),
+              style: TextStyle(color: C.onSurfaceVariant.withValues(alpha: 0.6), height: 1.5),
             ),
           ],
         ),
@@ -193,38 +192,44 @@ class _AdminPriceUpdatersScreenState
     );
   }
 
-  Widget _buildList() {
-    final active = _updaters.where((u) => u.status == 'active').length;
+  Widget _buildList(bool web) {
+    final activeCount = _updaters.where((u) => u.status == 'active').length;
     return Column(
       children: [
-        // Stats bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          color: _kFlowerPink.withValues(alpha: 0.05),
-          child: Row(
-            children: [
-              _StatChip(label: 'Total', value: '${_updaters.length}', color: _kFlowerPink),
-              const SizedBox(width: 12),
-              _StatChip(label: 'Active', value: '$active', color: Colors.green),
-              const SizedBox(width: 12),
-              _StatChip(label: 'Inactive', value: '${_updaters.length - active}', color: Colors.grey),
-            ],
-          ),
+        Row(
+          children: [
+            _PremiumStatChip(label: 'Total Roster', value: '${_updaters.length}', color: _kFlowerPink),
+            const SizedBox(width: 12),
+            _PremiumStatChip(label: 'Active Duty', value: '$activeCount', color: C.primary),
+          ],
         ),
-        // List
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(24),
-            itemCount: _updaters.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              return _UpdaterCard(
-                user: _updaters[index],
-                onToggleStatus: (user) => _toggleStatus(user),
-                onDelete: (user) => _confirmDelete(context, user),
-              );
-            },
-          ),
+        const SizedBox(height: 24),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _updaters.length,
+          itemBuilder: (context, index) {
+            final u = _updaters[index];
+            return AnimatedBuilder(
+              animation: _listController,
+              builder: (context, child) {
+                final delay = index * 0.05;
+                final ani = CurvedAnimation(
+                  parent: _listController,
+                  curve: Interval(delay.clamp(0, 1), (delay + 0.4).clamp(0, 1), curve: Curves.easeOutQuart),
+                );
+                return Transform.translate(
+                  offset: Offset(0, 20 * (1 - ani.value)),
+                  child: Opacity(opacity: ani.value, child: child),
+                );
+              },
+              child: _PremiumUpdaterCard(
+                user: u,
+                onToggleStatus: (u) => _toggleStatus(u),
+                onDelete: (u) => _confirmDelete(context, u),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -243,11 +248,7 @@ class _AdminPriceUpdatersScreenState
       await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Failed to update status: $e'),
-              backgroundColor: C.error),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status update failed: $e'), backgroundColor: C.error));
       }
     }
   }
@@ -255,20 +256,24 @@ class _AdminPriceUpdatersScreenState
   Future<void> _confirmDelete(BuildContext context, UserModel user) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: Text(
-            'Delete price updater account for ${user.name}?\nThis cannot be undone.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: C.error),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      builder: (_) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: AlertDialog(
+          backgroundColor: C.surfaceContainerLowest,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          title: const Text('Revoke Credentials?', style: TextStyle(fontWeight: FontWeight.w900)),
+          content: Text('Are you certain you wish to permanently remove ${user.name} from the roster? This action is irreversible.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: C.onSurfaceVariant, fontWeight: FontWeight.w700))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: C.error, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Revoke Permanently'),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed == true) {
@@ -281,11 +286,8 @@ class _AdminPriceUpdatersScreenState
         );
         await _load();
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete: $e')),
-          );
-        }
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Decommission failed: $e')));
       }
     }
   }
@@ -294,24 +296,46 @@ class _AdminPriceUpdatersScreenState
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _CreatePriceUpdaterDialog(onCreated: _load),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      builder: (_) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: _CreatePriceUpdaterDialog(onCreated: _load),
+      ),
     );
   }
 }
 
-// ==================== CREATE DIALOG ====================
+class _PremiumStatChip extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  const _PremiumStatChip({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withValues(alpha: 0.1))),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color)),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: C.onSurfaceVariant.withValues(alpha: 0.6), letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
+}
 
 class _CreatePriceUpdaterDialog extends StatefulWidget {
   final VoidCallback onCreated;
   const _CreatePriceUpdaterDialog({required this.onCreated});
 
   @override
-  State<_CreatePriceUpdaterDialog> createState() =>
-      _CreatePriceUpdaterDialogState();
+  State<_CreatePriceUpdaterDialog> createState() => _CreatePriceUpdaterDialogState();
 }
 
-class _CreatePriceUpdaterDialogState
-    extends State<_CreatePriceUpdaterDialog> {
+class _CreatePriceUpdaterDialogState extends State<_CreatePriceUpdaterDialog> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -334,79 +358,38 @@ class _CreatePriceUpdaterDialogState
     final password = _passwordCtrl.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.length < 8) {
-      setState(() => _error =
-          'Name, email, and a minimum 8-character password are required');
+      setState(() => _error = 'Please provide full name, valid email, and 8+ char password');
       return;
     }
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() { _loading = true; _error = null; });
 
     try {
       final svc = AppwriteService.instance;
-      if (!svc.isInitialized) await svc.init();
-
-      // 1. Create Appwrite auth account (doesn't create a session)
-      final account = await svc.account.create(
-        userId: ID.unique(),
-        email: email,
-        password: password,
-        name: name,
-      );
-
-      // 2. Create users collection document
+      final account = await svc.account.create(userId: ID.unique(), email: email, password: password, name: name);
       await svc.db.createDocument(
         databaseId: svc.databaseId,
         collectionId: AppwriteConfig.usersCollectionId,
         documentId: account.$id,
-        data: {
-          'userId': account.$id,
-          'name': name,
-          'email': email,
-          'role': 'price_updater',
-          'district': _selectedDistrict,
-          'taluk': '',
-          'municipality': '',
-          'profileImage': '',
-          'status': 'active',
-        },
+        data: {'userId': account.$id, 'name': name, 'email': email, 'role': 'price_updater', 'district': _selectedDistrict, 'status': 'active'},
       );
-
       if (mounted) {
         Navigator.pop(context);
         widget.onCreated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                '✅ Price updater account created for $name'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Credentials provisioned successfully'), backgroundColor: C.primary, behavior: SnackBarBehavior.floating));
       }
     } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = e.toString().contains('user_already_exists')
-            ? 'An account with this email already exists'
-            : 'Failed to create account: $e';
-      });
+      setState(() { _loading = false; _error = e.toString().contains('user_already_exists') ? 'Identity already exists in system' : 'Failed to provision credentials: $e'; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Row(
-        children: [
-          Text('🌸', style: TextStyle(fontSize: 24)),
-          SizedBox(width: 12),
-          Text('Create Price Updater',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-        ],
-      ),
+      backgroundColor: C.surfaceContainerLowest,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      title: const Text('Provision Personnel', style: TextStyle(fontWeight: FontWeight.w900)),
       content: SizedBox(
         width: 400,
         child: SingleChildScrollView(
@@ -414,209 +397,116 @@ class _CreatePriceUpdaterDialogState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'This account will have access ONLY to the Flower Price Dashboard. They cannot access the admin panel or mobile app.',
-                style: TextStyle(fontSize: 13, color: C.onSurfaceVariant),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name *',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email Address *',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _passwordCtrl,
-                obscureText: !_showPassword,
-                decoration: InputDecoration(
-                  labelText: 'Password * (min 8 characters)',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(_showPassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
-                    onPressed: () =>
-                        setState(() => _showPassword = !_showPassword),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
+              Text('Specialized market monitoring account for authorized personnel only.', style: TextStyle(fontSize: 12, color: C.onSurfaceVariant.withValues(alpha: 0.6), height: 1.5)),
+              const SizedBox(height: 24),
+              _buildLabel('FULL NAME'),
+              _buildField(_nameCtrl, 'e.g. Arumugam Nadar', Icons.person_outline_rounded),
+              _buildLabel('ENTERPRISE EMAIL'),
+              _buildField(_emailCtrl, 'personnel@agriflow.com', Icons.alternate_email_rounded, type: TextInputType.emailAddress),
+              _buildLabel('SECURITY CREDENTIAL (PASSWORD)'),
+              _buildField(_passwordCtrl, '••••••••', Icons.lock_outline_rounded, obscure: !_showPassword, suffix: IconButton(icon: Icon(_showPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20), onPressed: () => setState(() => _showPassword = !_showPassword))),
+              _buildLabel('ASSIGNED JURISDICTION'),
               DropdownButtonFormField<String>(
-                value: _selectedDistrict,
-                decoration: const InputDecoration(
-                  labelText: 'Assigned District',
-                  prefixIcon: Icon(Icons.location_on_outlined),
-                ),
-                items: TamilNaduDistricts.names
-                    .map((d) => DropdownMenuItem(value: d, child: Text(d)))
-                    .toList(),
-                onChanged: (v) =>
-                    setState(() => _selectedDistrict = v ?? 'Madurai'),
+                initialValue: _selectedDistrict,
+                decoration: InputDecoration(filled: true, fillColor: C.surfaceContainerLow, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 16)),
+                items: TamilNaduDistricts.names.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)))).toList(),
+                onChanged: (v) => setState(() => _selectedDistrict = v ?? 'Madurai'),
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: C.errorContainer,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(_error!,
-                      style: const TextStyle(
-                          color: C.error, fontSize: 13)),
-                ),
-              ],
+              if (_error != null) _buildErrorMessage(),
             ],
           ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton.icon(
+        TextButton(onPressed: _loading ? null : () => Navigator.pop(context), child: const Text('Abort', style: TextStyle(color: C.onSurfaceVariant, fontWeight: FontWeight.w800))),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: _kFlowerPink, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
           onPressed: _loading ? null : _create,
-          icon: _loading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.person_add, size: 16),
-          label: const Text('Create Account'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _kFlowerPink,
-            foregroundColor: Colors.white,
-          ),
+          child: _loading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Provision Account'),
         ),
       ],
     );
   }
+
+  Widget _buildLabel(String label) {
+     return Padding(padding: const EdgeInsets.only(bottom: 8, left: 4, top: 12), child: Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: C.onSurfaceVariant, letterSpacing: 1)));
+  }
+
+  Widget _buildField(TextEditingController ctrl, String hint, IconData icon, {bool obscure = false, Widget? suffix, TextInputType? type}) {
+    return TextField(
+      controller: ctrl,
+      obscureText: obscure,
+      keyboardType: type,
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 20, color: C.onSurfaceVariant.withValues(alpha: 0.5)),
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: C.surfaceContainerLow,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: C.error.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: C.error.withValues(alpha: 0.2))),
+      child: Text(_error!, style: const TextStyle(color: C.error, fontSize: 12, fontWeight: FontWeight.w600)),
+    );
+  }
 }
 
-// ==================== UPDATER CARD ====================
-
-class _UpdaterCard extends StatelessWidget {
+class _PremiumUpdaterCard extends StatelessWidget {
   final UserModel user;
   final ValueChanged<UserModel> onToggleStatus;
   final ValueChanged<UserModel> onDelete;
-
-  const _UpdaterCard({
-    required this.user,
-    required this.onToggleStatus,
-    required this.onDelete,
-  });
+  const _PremiumUpdaterCard({required this.user, required this.onToggleStatus, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    final isActive = user.status == 'active';
+    final active = user.status == 'active';
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: C.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isActive
-              ? _kFlowerPink.withValues(alpha: 0.2)
-              : C.outlineVariant.withValues(alpha: 0.4),
-        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: active ? _kFlowerPink.withValues(alpha: 0.1) : C.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
-          // Avatar
           CircleAvatar(
-            radius: 22,
-            backgroundColor: isActive
-                ? _kFlowerPink.withValues(alpha: 0.15)
-                : C.surfaceContainerHighest,
-            child: Text(
-              user.name.isNotEmpty ? user.name[0].toUpperCase() : 'P',
-              style: TextStyle(
-                  color: isActive ? _kFlowerPink : C.onSurfaceVariant,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18),
-            ),
+            radius: 24,
+            backgroundColor: active ? _kFlowerPink.withValues(alpha: 0.05) : C.surfaceContainerLow,
+            child: Text(user.name.isNotEmpty ? user.name[0] : 'U', style: TextStyle(color: active ? _kFlowerPink : C.onSurfaceVariant, fontWeight: FontWeight.w900, fontSize: 18)),
           ),
           const SizedBox(width: 16),
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user.name,
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w800)),
-                Text(user.email,
-                    style: const TextStyle(
-                        fontSize: 12, color: C.onSurfaceVariant)),
-                const SizedBox(height: 4),
+                Text(user.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                Text(user.email, style: TextStyle(fontSize: 12, color: C.onSurfaceVariant.withValues(alpha: 0.6))),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (user.district.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _kFlowerPink.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(user.district,
-                            style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: _kFlowerPink)),
-                      ),
+                    _IconInfoPill(icon: Icons.location_on_rounded, label: user.district, color: _kFlowerPink),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? Colors.green.withValues(alpha: 0.12)
-                            : Colors.grey.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        isActive ? 'ACTIVE' : 'INACTIVE',
-                        style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: isActive
-                                ? Colors.green.shade700
-                                : Colors.grey),
-                      ),
-                    ),
+                    _StatusPill(active: active),
                   ],
                 ),
               ],
             ),
           ),
-          // Actions
-          Row(
+          Column(
             children: [
-              Switch(
-                value: isActive,
-                activeColor: _kFlowerPink,
-                onChanged: (_) => onToggleStatus(user),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline,
-                    color: C.error, size: 20),
-                tooltip: 'Delete account',
-                onPressed: () => onDelete(user),
-              ),
+              Switch(value: active, activeThumbColor: _kFlowerPink, onChanged: (_) => onToggleStatus(user)),
+              IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: C.error, size: 20), onPressed: () => onDelete(user)),
             ],
           ),
         ],
@@ -625,33 +515,43 @@ class _UpdaterCard extends StatelessWidget {
   }
 }
 
-class _StatChip extends StatelessWidget {
+class _IconInfoPill extends StatelessWidget {
+  final IconData icon;
   final String label;
-  final String value;
   final Color color;
-  const _StatChip(
-      {required this.label, required this.value, required this.color});
+  const _IconInfoPill({required this.icon, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(value,
-              style: TextStyle(
-                  fontWeight: FontWeight.w900, color: color, fontSize: 14)),
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final bool active;
+  const _StatusPill({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? C.primary : C.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          Container(width: 5, height: 5, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 6),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 12, color: C.onSurfaceVariant,
-                  fontWeight: FontWeight.w600)),
+          Text(active ? 'ACTIVE' : 'STANDBY', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
         ],
       ),
     );

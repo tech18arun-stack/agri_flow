@@ -20,8 +20,15 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
     'vegetables',
     'fruits',
     'grains',
+    'pulses',
+    'greens',
     'spices',
-    'flowers'
+    'flowers',
+    'tubers',
+    'plantation',
+    'oilseeds',
+    'industrial',
+    'processed'
   ];
 
   @override
@@ -119,10 +126,24 @@ class _MarketPricesScreenState extends State<MarketPricesScreen> {
         return 'Fruits';
       case 'grains':
         return 'Grains';
+      case 'pulses':
+        return 'Pulses';
+      case 'greens':
+        return 'Greens';
       case 'spices':
         return 'Spices';
       case 'flowers':
         return 'Flowers';
+      case 'tubers':
+        return 'Tubers';
+      case 'plantation':
+        return 'Plantation';
+      case 'oilseeds':
+        return 'Oilseeds';
+      case 'industrial':
+        return 'Industrial';
+      case 'processed':
+        return 'Processed';
       default:
         return category;
     }
@@ -166,9 +187,13 @@ class _MarketPriceList extends StatelessWidget {
       final totalQuantity =
           products.fold(0.0, (sum, p) => sum + p.quantity);
       final farmerCount = products.map((p) => p.farmerId).toSet().length;
+      
+      // Get the most frequent Tamil name for this product name
+      final nameTa = products.first.nameTa;
 
       return _MarketItem(
         productName: entry.key,
+        productNameTa: nameTa,
         avgPrice: avgPrice,
         minPrice: minPrice,
         maxPrice: maxPrice,
@@ -219,7 +244,6 @@ class _MarketPriceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final priceProvider = context.read<PriceEngineProvider>();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -246,8 +270,14 @@ class _MarketPriceCard extends StatelessWidget {
                     Text(item.productName,
                         style: const TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             color: Color(0xFF002b02))),
+                    if (item.productNameTa.isNotEmpty)
+                      Text(item.productNameTa,
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF0d631b))),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -409,6 +439,7 @@ class _MarketPriceCard extends StatelessWidget {
 
 class _MarketItem {
   final String productName;
+  final String productNameTa;
   final double avgPrice;
   final double minPrice;
   final double maxPrice;
@@ -418,6 +449,7 @@ class _MarketItem {
 
   const _MarketItem({
     required this.productName,
+    required this.productNameTa,
     required this.avgPrice,
     required this.minPrice,
     required this.maxPrice,

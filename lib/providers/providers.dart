@@ -12,3 +12,4 @@ export 'cart_persistence_provider.dart';
 export 'notification_provider.dart';
 export 'flower_price_provider.dart';
 export 'flower_catalog_provider.dart';
+export 'location_provider.dart';

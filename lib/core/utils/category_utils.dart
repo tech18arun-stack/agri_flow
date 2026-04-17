@@ -17,10 +17,20 @@ IconData categoryIcon(String category) {
       return Icons.eco;
     case 'staples':
       return Icons.shopping_basket;
-    case 'dairy':
-      return Icons.egg_alt;
     case 'pulses':
       return Icons.circle;
+    case 'greens':
+      return Icons.yard_rounded;
+    case 'tubers':
+      return Icons.bakery_dining_rounded;
+    case 'plantation':
+      return Icons.coffee_rounded;
+    case 'oilseeds':
+      return Icons.circle_notifications_rounded;
+    case 'industrial':
+      return Icons.factory_rounded;
+    case 'processed':
+      return Icons.liquor;
     default:
       return Icons.eco;
   }
@@ -43,10 +53,20 @@ Color categoryColor(String category) {
       return const Color(0xFF009688);
     case 'staples':
       return const Color(0xFF795548);
-    case 'dairy':
-      return const Color(0xFF2196F3);
     case 'pulses':
       return const Color(0xFFFF9800);
+    case 'greens':
+      return const Color(0xFF2E7D32);
+    case 'tubers':
+      return const Color(0xFF8D6E63);
+    case 'plantation':
+      return const Color(0xFF5D4037);
+    case 'oilseeds':
+      return const Color(0xFFFBC02D);
+    case 'industrial':
+      return const Color(0xFF455A64);
+    case 'processed':
+      return const Color(0xFF0097A7);
     default:
       return const Color(0xFF0d631b);
   }

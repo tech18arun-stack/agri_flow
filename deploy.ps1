@@ -27,7 +27,7 @@ echo "Starting Deployment Flow..."
 
 # 1. Build Flutter Web
 echo "Building Flutter Web..."
-flutter build web
+flutter build web --no-wasm-dry-run
 
 if ($LASTEXITCODE -ne 0) {
     echo "Build failed! Aborting deployment."
@@ -41,18 +41,25 @@ echo "Build complete at build/web/"
 # For faster sync, install rsync on Windows (via WSL or Cygwin).
 echo "Uploading files to $SERVER_IP..."
 
-# Upload everything inside build/web
-# Note: Use -P (uppercase) for port in scp
+echo "Compressing build output..."
+# Using native tar to resolve the backslash directory structure corruption happening across Windows -> Linux zip extraction.
+tar.exe -czf build\web.tar.gz -C build\web .
+
 echo "syncing configuration..."
 scp -P $SERVER_PORT nginx_config "${SERVER_USER}@${SERVER_IP}:${REMOTE_PATH}/nginx_config"
 
-echo "syncing application build..."
-scp -P $SERVER_PORT -r build/web/* "${SERVER_USER}@${SERVER_IP}:${REMOTE_PATH}"
+echo "syncing application build (zipped)..."
+scp -P $SERVER_PORT build\web.tar.gz "${SERVER_USER}@${SERVER_IP}:${REMOTE_PATH}/web.tar.gz"
 
 if ($LASTEXITCODE -ne 0) {
     echo "Upload failed! Check your connection and SSH keys."
     exit
 }
+
+echo "Extracting on server..."
+ssh -p $SERVER_PORT ${SERVER_USER}@${SERVER_IP} "cd ${REMOTE_PATH} && tar -xzf web.tar.gz && rm web.tar.gz"
+
+
 
 echo "Deployment Successful!"
 echo "Access your app at: http://$SERVER_IP"

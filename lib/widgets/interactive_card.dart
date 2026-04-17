@@ -7,6 +7,7 @@ class InteractiveCard extends StatefulWidget {
   final double scaleFactor;
   final Duration duration;
 
+
   const InteractiveCard({
     super.key,
     required this.child,

@@ -1,6 +1,7 @@
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/models.dart' as aw;
 import '../data/models.dart';
 import '../services/appwrite_service.dart';
 import '../services/appwrite_config.dart';
@@ -27,8 +28,8 @@ class ProductTemplateService {
         databaseId: _svc.databaseId,
         collectionId: AppwriteConfig.productTemplatesCollectionId,
         queries: [
-          Query.equal('active', true),
           Query.orderAsc('sortOrder'),
+          Query.limit(200),
         ],
       );
 
@@ -40,6 +41,64 @@ class ProductTemplateService {
     } catch (e) {
       debugPrint('❌ Failed to load product templates: $e');
       return [];
+    }
+  }
+
+  /// Intelligent Sync: Adds new templates and updates names/categories,
+  /// but NEVER overwrites custom images or active status if already manually set.
+  Future<Map<String, int>> syncFromLocal() async {
+    try {
+      // 1. Load local JSON
+      final jsonStr =
+          await rootBundle.loadString('assets/data/product_templates.json');
+      final List<dynamic> localData = json.decode(jsonStr);
+
+      // 2. Load existing from DB
+      final dbTemplates = await getAllTemplates();
+      final dbMap = {for (var t in dbTemplates) t.id: t};
+
+      int added = 0;
+      int updated = 0;
+
+      for (var local in localData) {
+        final id = local['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+
+        final existing = dbMap[id];
+        final data = Map<String, dynamic>.from(local);
+        data.remove('id'); // ID is the documentId
+
+        if (existing == null) {
+          // CREATE NEW
+          await _svc.db.createDocument(
+            databaseId: _svc.databaseId,
+            collectionId: AppwriteConfig.productTemplatesCollectionId,
+            documentId: id,
+            data: data,
+          );
+          added++;
+        } else {
+          // UPDATE SELECTIVELY
+          // PROTECT: Don't overwrite imageUrl if DB already has one
+          if (existing.imageUrl.isNotEmpty) {
+            data.remove('imageUrl');
+          }
+          
+          await _svc.db.updateDocument(
+            databaseId: _svc.databaseId,
+            collectionId: AppwriteConfig.productTemplatesCollectionId,
+            documentId: id,
+            data: data,
+          );
+          updated++;
+        }
+      }
+
+      clearCache();
+      return {'added': added, 'updated': updated};
+    } catch (e) {
+      debugPrint('❌ Sync failed: $e');
+      return {'error': -1};
     }
   }
 

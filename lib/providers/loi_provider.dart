@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../data/models.dart';
 import '../services/loi_service.dart';
 
+import '../services/notification_service.dart';
+
 class LOIProvider with ChangeNotifier {
   final LOIService _service = LOIService();
+  final NotificationService _notifSvc = NotificationService.instance;
   List<LOIRequestModel> _farmerRequests = [];
   List<LOIRequestModel> _merchantRequests = [];
   bool _isLoading = false;
@@ -42,6 +45,17 @@ class LOIProvider with ChangeNotifier {
     try {
       final newLoi = await _service.createLOIRequest(request);
       _merchantRequests.add(newLoi);
+
+      // Notify Farmer
+      await _notifSvc.create(
+        userId: request.farmerId,
+        role: 'farmer',
+        title: 'New Price Offer!',
+        message: '${request.merchantName} sent an LOI for ${request.productName} (₹${request.priceOffer}/${request.unit})',
+        type: 'loi',
+        data: newLoi.id,
+      );
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -56,6 +70,16 @@ class LOIProvider with ChangeNotifier {
       final index = _farmerRequests.indexWhere((l) => l.id == loiId);
       if (index != -1) {
         _farmerRequests[index] = updatedLoi;
+        
+        // Notify Merchant
+        await _notifSvc.sendLOINotification(
+          userId: updatedLoi.merchantId,
+          role: 'merchant',
+          loiId: updatedLoi.id,
+          status: status,
+          productName: updatedLoi.productName,
+        );
+
         notifyListeners();
       }
       return true;

@@ -43,22 +43,20 @@ class _SellingScreenState extends State<SellingScreen> {
                 Container(
                   height: 240,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [C.primary, C.primaryContainer],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: C.background,
                   ),
                 ),
                 Positioned(
-                  top: -50,
-                  right: -50,
+                  top: -100,
+                  right: -100,
                   child: Container(
-                    width: 200,
-                    height: 200,
+                    width: 400,
+                    height: 400,
                     decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: C.onPrimary.withValues(alpha: 0.1)),
+                        gradient: RadialGradient(
+                          colors: [C.primary.withValues(alpha: 0.15), Colors.transparent],
+                        )),
                   ),
                 ),
                 Padding(
@@ -69,7 +67,7 @@ class _SellingScreenState extends State<SellingScreen> {
                       const Text(
                         'RETAIL OPERATIONS',
                         style: TextStyle(
-                            color: C.tertiaryFixed,
+                            color: C.primary,
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2),
@@ -78,16 +76,16 @@ class _SellingScreenState extends State<SellingScreen> {
                       const Text(
                         'SALES TERMINAL',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
+                            color: C.onSurface,
+                            fontSize: 28,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5),
+                            letterSpacing: -1.5),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Optimize your listings and reach thousands of consumers.',
                         style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: C.onSurfaceVariant.withValues(alpha: 0.6),
                             fontSize: 13,
                             fontWeight: FontWeight.w500),
                       ),
@@ -104,65 +102,75 @@ class _SellingScreenState extends State<SellingScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10)),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Text('ACTIVE STOCK',
-                              style: TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.grey,
-                                  letterSpacing: 1)),
-                          const SizedBox(height: 4),
-                          Text('${_inventory.length} SKUs',
-                              style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  color: C.onSurface)),
-                        ],
+                    child: InteractiveCard(
+                      scaleFactor: 0.98,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: C.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10)),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Text('ACTIVE STOCK',
+                                style: TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w800,
+                                    color: C.onSurfaceVariant.withValues(alpha: 0.5),
+                                    letterSpacing: 1)),
+                            const SizedBox(height: 4),
+                            Text('${_inventory.length} SKUs',
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: C.onSurface,
+                                    letterSpacing: -0.5)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10)),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Text('MARKET TREND',
-                              style: TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.grey,
-                                  letterSpacing: 1)),
-                          const SizedBox(height: 4),
-                          Text('BULLISH',
-                              style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  color: C.primary)),
-                        ],
+                    child: InteractiveCard(
+                      scaleFactor: 0.98,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: C.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10)),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Text('MARKET TREND',
+                                style: TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w800,
+                                    color: C.onSurfaceVariant.withValues(alpha: 0.5),
+                                    letterSpacing: 1)),
+                            const SizedBox(height: 4),
+                            const Text('BULLISH',
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: C.primary,
+                                    letterSpacing: -0.5)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -241,11 +249,12 @@ class _SellableItemCardModernState extends State<_SellableItemCardModern> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: C.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: C.outlineVariant.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 30,
               offset: const Offset(0, 15)),
         ],
@@ -265,7 +274,7 @@ class _SellableItemCardModernState extends State<_SellableItemCardModern> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                      color: C.primary.withValues(alpha: 0.1),
+                      color: C.primary.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16)),
                   child: const Icon(Icons.rocket_launch_rounded,
                       color: C.primary, size: 24),
@@ -286,11 +295,11 @@ class _SellableItemCardModernState extends State<_SellableItemCardModern> {
                       const SizedBox(height: 4),
                       Text(
                         'STOCK: ${widget.item.quantity.toInt()} ${widget.item.unit} • COST: ₹${widget.item.purchasePrice.toInt()}',
-                        style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.grey,
-                            letterSpacing: 1),
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: C.onSurfaceVariant.withValues(alpha: 0.5),
+                            letterSpacing: 0.5),
                       ),
                     ],
                   ),
@@ -308,11 +317,11 @@ class _SellableItemCardModernState extends State<_SellableItemCardModern> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('TARGET LISTING PRICE',
+                          Text('TARGET LISTING PRICE',
                               style: TextStyle(
                                   fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w800,
+                                  color: C.onSurfaceVariant.withValues(alpha: 0.5),
                                   letterSpacing: 1)),
                           const SizedBox(height: 8),
                           TextField(
@@ -342,11 +351,11 @@ class _SellableItemCardModernState extends State<_SellableItemCardModern> {
                       ),
                       child: Column(
                         children: [
-                          const Text('MARGIN',
+                          Text('MARGIN',
                               style: TextStyle(
                                   fontSize: 8,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w800,
+                                  color: (margin >= 20 ? C.primary : Colors.orange).withValues(alpha: 0.5),
                                   letterSpacing: 1)),
                           Text('${margin.toStringAsFixed(1)}%',
                               style: TextStyle(
@@ -377,7 +386,7 @@ class _SellableItemCardModernState extends State<_SellableItemCardModern> {
                       ],
                     ),
                     child: const Center(
-                      child: Text('PUBLISH TO MARKETPLAY',
+                      child: Text('PUBLISH TO MARKETPLACE',
                           style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w900,

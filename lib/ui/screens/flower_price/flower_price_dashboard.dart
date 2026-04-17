@@ -629,7 +629,6 @@ class _FlowerPriceRow extends StatelessWidget {
     final isAlternate = index % 2 == 1;
     final change = _changePercent;
     final isUp = change > 0;
-    final isDown = change < 0;
 
     Color? flowerColor;
     try {

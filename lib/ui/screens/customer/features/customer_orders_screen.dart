@@ -4,6 +4,7 @@ import '../../../../providers/order_provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../widgets/interactive_card.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../data/models.dart';
 
 class CustomerOrdersScreen extends StatefulWidget {
@@ -110,14 +111,27 @@ class _PremiumOrderCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(order.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(Icons.receipt_long_rounded,
-                      color: _getStatusColor(order.status), size: 20),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: order.items.isNotEmpty && order.items.first.productImageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: order.items.first.productImageUrl,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            color: _getStatusColor(order.status).withValues(alpha: 0.1),
+                            child: const Center(child: Icon(Icons.receipt_long_rounded, color: Colors.grey, size: 20)),
+                          ),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(order.status).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(Icons.receipt_long_rounded, color: _getStatusColor(order.status), size: 20),
+                        ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

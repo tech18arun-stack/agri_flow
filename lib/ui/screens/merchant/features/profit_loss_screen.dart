@@ -46,22 +46,20 @@ class _ProfitLossTrackingScreenState extends State<ProfitLossTrackingScreen> {
                     Container(
                       height: 280,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [C.primary, C.primaryContainer],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: C.background,
                       ),
                     ),
                     Positioned(
-                      top: -60,
-                      right: -60,
+                      top: -100,
+                      right: -100,
                       child: Container(
-                        width: 250,
-                        height: 250,
+                        width: 400,
+                        height: 400,
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: C.onPrimary.withValues(alpha: 0.1)),
+                            gradient: RadialGradient(
+                              colors: [C.primary.withValues(alpha: 0.15), Colors.transparent],
+                            )),
                       ),
                     ),
                     Padding(
@@ -72,7 +70,7 @@ class _ProfitLossTrackingScreenState extends State<ProfitLossTrackingScreen> {
                           const Text(
                             'FINANCIAL INTELLIGENCE',
                             style: TextStyle(
-                                color: C.tertiaryFixed,
+                                color: C.primary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 2),
@@ -81,29 +79,30 @@ class _ProfitLossTrackingScreenState extends State<ProfitLossTrackingScreen> {
                           const Text(
                             'PROFIT & LOSS',
                             style: TextStyle(
-                                color: Colors.white,
+                                color: C.onSurface,
                                 fontSize: 32,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -1.5),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
+                                    horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                    color: C.primary.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: C.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                         color:
-                                            C.primary.withValues(alpha: 0.3))),
+                                            C.primary.withValues(alpha: 0.2))),
                                 child: Text(
                                     'NET GAIN: ₹${totalProfit.toStringAsFixed(0)}',
                                     style: const TextStyle(
                                         color: C.primary,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900)),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.5)),
                               ),
                             ],
                           ),
@@ -114,7 +113,7 @@ class _ProfitLossTrackingScreenState extends State<ProfitLossTrackingScreen> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 sliver: SliverGrid.count(
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
@@ -226,14 +225,16 @@ class _BentoStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InteractiveCard(
+      scaleFactor: 0.98,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: C.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 20,
                 offset: const Offset(0, 10)),
           ],
@@ -246,7 +247,7 @@ class _BentoStatCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12)),
@@ -254,16 +255,16 @@ class _BentoStatCard extends StatelessWidget {
                 ),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                      color: (isPositive ? Colors.green : Colors.red)
+                      color: (isPositive ? C.primary : Colors.orange)
                           .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6)),
+                      borderRadius: BorderRadius.circular(8)),
                   child: Text(trend,
                       style: TextStyle(
-                          color: isPositive ? Colors.green : Colors.red,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold)),
+                          color: isPositive ? C.primary : Colors.orange,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900)),
                 ),
               ],
             ),
@@ -271,17 +272,18 @@ class _BentoStatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: C.onSurfaceVariant.withValues(alpha: 0.5),
                         letterSpacing: 0.5)),
                 const SizedBox(height: 4),
                 Text(value,
                     style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        color: C.onSurface)),
+                        color: C.onSurface,
+                        letterSpacing: -0.5)),
               ],
             ),
           ],
@@ -298,53 +300,60 @@ class _TransactionCardModern extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCredit = transaction.type == 'sale';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-                color: (isCredit ? Colors.green : Colors.blue)
-                    .withValues(alpha: 0.1),
-                shape: BoxShape.circle),
-            child: Icon(isCredit ? Icons.add_rounded : Icons.remove_rounded,
-                color: isCredit ? C.primary : Colors.blue),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(transaction.description,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, color: Color(0xFF0f172a))),
-                const SizedBox(height: 4),
-                Text(transaction.date.toString().split(' ')[0],
-                    style:
-                        TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-              ],
+    return InteractiveCard(
+      scaleFactor: 0.99,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: C.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                  color: (isCredit ? C.primary : Colors.blue)
+                      .withValues(alpha: 0.1),
+                  shape: BoxShape.circle),
+              child: Icon(isCredit ? Icons.add_rounded : Icons.remove_rounded,
+                  color: isCredit ? C.primary : Colors.blue),
             ),
-          ),
-          Text(
-            '${isCredit ? "+" : "-"}₹${transaction.amount.toInt()}',
-            style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-                color: isCredit ? C.primary : Colors.red),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(transaction.description,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w900, 
+                          color: C.onSurface,
+                          fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text(transaction.date.toString().split(' ')[0],
+                      style:
+                          TextStyle(color: C.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 11, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            Text(
+              '${isCredit ? "+" : "-"}₹${transaction.amount.toInt()}',
+              style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  color: isCredit ? C.primary : Colors.orange,
+                  letterSpacing: -0.5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -358,11 +367,11 @@ class _EmptyTransactionsState extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.receipt_long_outlined,
-            size: 64, color: Colors.grey.shade300),
+            size: 64, color: C.onSurfaceVariant.withValues(alpha: 0.2)),
         const SizedBox(height: 16),
         const Text('No Transaction data',
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w900, color: Colors.grey)),
+                fontSize: 16, fontWeight: FontWeight.w900, color: Colors.grey)),
       ],
     );
   }

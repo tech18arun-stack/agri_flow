@@ -5,9 +5,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../services/product_template_service.dart';
-import '../../../../data/models.dart';
 import '../../../../widgets/interactive_card.dart';
+import '../../../../data/models.dart';
 import '../../../../widgets/glass_container.dart';
+import '../../../../core/utils/image_url_utils.dart';
+import '../../../../widgets/map_location_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 // ==================== MAIN WIDGET ====================
 
@@ -22,6 +25,13 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
   final _priceCtrl = TextEditingController();
   final _quantityCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
+  final _imageUrlCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+
+  double? _lat;
+  double? _lng;
+  bool _gettingLocation = false;
 
   ProductTemplateModel? _selectedProduct;
   List<ProductTemplateModel> _allTemplates = [];
@@ -31,15 +41,22 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
   String _searchQuery = '';
   String _selectedCategory = 'all';
   bool _isOrganic = false;
+  bool _useCustomImage = false;
 
   // Category labels with icons
   final Map<String, String> _categoryIcons = {
     'all': '🌾',
     'vegetables': '🥬',
     'fruits': '🍎',
-    'grains': '🌾',
+    'grains': '🍚',
+    'greens': '🍃',
     'spices': '🌿',
     'flowers': '🌸',
+    'tubers': '🥔',
+    'plantation': '☕',
+    'oilseeds': '🥜',
+    'pulses': '🫘',
+    'industrial': '🏭',
     'processed': '🧴',
   };
 
@@ -54,6 +71,9 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
     _priceCtrl.dispose();
     _quantityCtrl.dispose();
     _searchCtrl.dispose();
+    _imageUrlCtrl.dispose();
+    _locationCtrl.dispose();
+    _addressCtrl.dispose();
     super.dispose();
   }
 
@@ -108,6 +128,27 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
         double.tryParse(_quantityCtrl.text) != null;
   }
 
+  Future<void> _getLocation() async {
+    final LatLng? result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapLocationPicker(
+          title: 'Pick Product Location',
+          initialLocation: _lat != null && _lng != null ? LatLng(_lat!, _lng!) : null,
+        ),
+      ),
+    );
+
+    if (mounted && result != null) {
+      setState(() {
+        _lat = result.latitude;
+        _lng = result.longitude;
+        _locationCtrl.text = 'Pinned on Map';
+        _addressCtrl.text = 'Lat: ${result.latitude.toStringAsFixed(4)}, Lng: ${result.longitude.toStringAsFixed(4)}';
+      });
+    }
+  }
+
   Future<void> _submitProduct() async {
     if (!_isFormValid) return;
 
@@ -115,6 +156,12 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
 
     final auth = context.read<AuthProvider>();
     final user = auth.user;
+
+    // Get image URL - use custom if provided, otherwise use template
+    String imageUrl = _selectedProduct!.imageUrl;
+    if (_useCustomImage && _imageUrlCtrl.text.trim().isNotEmpty) {
+      imageUrl = ImageUrlUtils.normalizeImageUrl(_imageUrlCtrl.text.trim());
+    }
 
     final success = await context.read<ProductProvider>().addProduct(
           name: _selectedProduct!.nameEn,
@@ -124,16 +171,20 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
           quantity: double.parse(_quantityCtrl.text),
           unit: _selectedProduct!.unit,
           organic: _isOrganic,
-          location: user?.district ?? '',
+          location: _locationCtrl.text.isNotEmpty ? _locationCtrl.text : (user?.district ?? ''),
+          address: _addressCtrl.text,
           farmerId: user?.id ?? '',
           farmerName: user?.name ?? '',
-          imageUrl: _selectedProduct!.imageUrl ?? '',
+          farmerPhone: user?.phone ?? '',
+          imageUrl: imageUrl,
           harvestedDate: DateTime.now().toIso8601String(),
+          lat: _lat,
+          lng: _lng,
         );
 
     if (mounted) {
       setState(() => _submitting = false);
-      if (success == true) {
+      if (success != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✅ ${_selectedProduct!.nameEn} added successfully!'),
@@ -159,7 +210,13 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
       _selectedProduct = null;
       _priceCtrl.clear();
       _quantityCtrl.clear();
+      _imageUrlCtrl.clear();
+      _locationCtrl.clear();
+      _addressCtrl.clear();
+      _lat = null;
+      _lng = null;
       _isOrganic = false;
+      _useCustomImage = false;
     });
   }
 
@@ -257,7 +314,7 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
   Widget _buildSelectedCard() {
     final product = _selectedProduct!;
     final Color color = _parseColor(product.color);
-    final String imageUrl = product.imageUrl ?? '';
+    final String imageUrl = product.imageUrl;
     final String icon = product.icon.isNotEmpty ? product.icon : '🌾';
 
     return Container(
@@ -529,6 +586,170 @@ class _FarmerAddProductTabState extends State<FarmerAddProductTab> {
 
         const SizedBox(height: 16),
 
+        // Location Input
+        _buildInputCard(
+          title: '📍 Location / Origin',
+          subtitle: 'Where is this item available?',
+          child: Column(
+            children: [
+              TextField(
+                controller: _locationCtrl,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Coimbatore, TN',
+                  border: InputBorder.none,
+                  isDense: true,
+                  suffixIcon: _gettingLocation 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : IconButton(
+                        icon: const Icon(Icons.my_location, color: C.primary),
+                        onPressed: _getLocation,
+                        tooltip: 'Get Current Location',
+                      ),
+                ),
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w600, color: C.onSurface),
+              ),
+              if (_lat != null) ...[
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        'GPS Coordinates Linked (${_lat!.toStringAsFixed(4)}, ${_lng!.toStringAsFixed(4)})',
+                        style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Custom Image URL Section
+        _buildInputCard(
+          title: '🖼️ Product Image (Optional)',
+          subtitle: 'Add custom image URL or use template image',
+          child: Column(
+            children: [
+              // Toggle for custom image
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => _useCustomImage = !_useCustomImage),
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: _useCustomImage ? C.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: C.primary, width: 2),
+                      ),
+                      child: _useCustomImage
+                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Use custom image URL',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: C.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_useCustomImage) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _imageUrlCtrl,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: ImageUrlUtils.getPlaceholderText(),
+                    hintStyle: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    prefixIcon: Icon(Icons.link, size: 18, color: Colors.grey.shade600),
+                    filled: true,
+                    fillColor: C.surfaceContainer,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    suffixIcon: _imageUrlCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => _imageUrlCtrl.clear(),
+                          )
+                        : null,
+                  ),
+                  style: const TextStyle(fontSize: 12),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+                // Image preview
+                if (_imageUrlCtrl.text.trim().isNotEmpty)
+                  Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: C.surfaceContainer,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: ImageUrlUtils.normalizeImageUrl(_imageUrlCtrl.text.trim()),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.red.shade50,
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.error_outline, color: Colors.red, size: 24),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Invalid image URL',
+                                  style: TextStyle(fontSize: 10, color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                // Help text
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    ImageUrlUtils.getHelpText(),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
         // Organic Toggle
         InteractiveCard(
           scaleFactor: 0.96,
@@ -714,8 +935,8 @@ class _ProductCard extends StatelessWidget {
 
   Color get _color {
     try {
-      if (product.color != null && product.color!.isNotEmpty) {
-        return Color(int.parse(product.color!.replaceFirst('#', '0xFF')));
+      if (product.color.isNotEmpty) {
+        return Color(int.parse(product.color.replaceFirst('#', '0xFF')));
       }
     } catch (e) {
       // ignore
@@ -723,7 +944,7 @@ class _ProductCard extends StatelessWidget {
     return C.primary;
   }
 
-  String get _imageUrl => product.imageUrl ?? '';
+  String get _imageUrl => product.imageUrl;
   String get _icon => product.icon.isNotEmpty ? product.icon : '🌾';
 
   @override

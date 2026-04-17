@@ -20,6 +20,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 from appwrite.client import Client
 from appwrite.services.databases import Databases
+from appwrite.query import Query
 
 ENDPOINT = os.getenv("APPWRITE_ENDPOINT", "https://api.websitescorp.com/v1")
 API_KEY = os.getenv("APPWRITE_API_KEY", "")
@@ -54,62 +55,66 @@ with open(DATA_FILE, "r", encoding="utf-8") as f:
 
 print(f"\n📊 Loaded {len(products)} products from JSON\n")
 
+# Fetch existing documents to preserve state
+print("🔍 Checking existing documents...")
+existing_docs = {}
+try:
+    result = db.list_documents(DATABASE_ID, COLLECTION, [Query.limit(200)])
+    for doc in result.get('documents', []):
+        existing_docs[doc['$id']] = doc
+except Exception as e:
+    print(f"  ⚠️ Warning: Could not fetch existing docs: {e}")
+
 # Update each product with correct image URL
 updated = 0
 failed = 0
 
 for i, product in enumerate(products):
+    pid = product["id"]
+    template_img = product.get("imageUrl", "")
+    
+    data = {
+        "imageUrl": template_img,
+        "nameEn": product.get("nameEn", ""),
+        "nameTa": product.get("nameTa", ""),
+        "category": product.get("category", ""),
+        "unit": product.get("unit", "kg"),
+        "icon": product.get("icon", ""),
+        "color": product.get("color", "#4CAF50"),
+        "keywords": product.get("keywords", ""),
+        "active": product.get("active", True),
+        "sortOrder": product.get("sortOrder", 0),
+    }
+
     try:
-        # Try to update existing document
-        db.update_document(
-            database_id=DATABASE_ID,
-            collection_id=COLLECTION,
-            document_id=product["id"],
-            data={
-                "imageUrl": product.get("imageUrl", ""),
-                "nameEn": product.get("nameEn", ""),
-                "nameTa": product.get("nameTa", ""),
-                "category": product.get("category", ""),
-                "unit": product.get("unit", "kg"),
-                "icon": product.get("icon", ""),
-                "color": product.get("color", "#4CAF50"),
-                "keywords": product.get("keywords", ""),
-                "active": product.get("active", True),
-                "sortOrder": product.get("sortOrder", 0),
-            },
-        )
-        print(f"  ✅ [{i+1}/{len(products)}] Updated: {product['nameEn']}")
-        updated += 1
+        if pid in existing_docs:
+            existing = existing_docs[pid]
+            # PRESERVE IMAGE URL: If template has no image but DB does, keep DB image
+            if not template_img and existing.get('imageUrl'):
+                data['imageUrl'] = existing['imageUrl']
+                print(f"  ℹ️ [{i+1}/{len(products)}] Preserving image for {product['nameEn']}")
+
+            db.update_document(
+                database_id=DATABASE_ID,
+                collection_id=COLLECTION,
+                document_id=pid,
+                data=data,
+            )
+            print(f"  ✅ [{i+1}/{len(products)}] Updated: {product['nameEn']}")
+            updated += 1
+        else:
+            db.create_document(
+                database_id=DATABASE_ID,
+                collection_id=COLLECTION,
+                document_id=pid,
+                data=data,
+            )
+            print(f"  🆕 [{i+1}/{len(products)}] Created: {product['nameEn']}")
+            updated += 1
 
     except Exception as e:
-        # If document not found, create it
-        if "not found" in str(e).lower() or "404" in str(e):
-            try:
-                db.create_document(
-                    database_id=DATABASE_ID,
-                    collection_id=COLLECTION,
-                    document_id=product["id"],
-                    data={
-                        "imageUrl": product.get("imageUrl", ""),
-                        "nameEn": product.get("nameEn", ""),
-                        "nameTa": product.get("nameTa", ""),
-                        "category": product.get("category", ""),
-                        "unit": product.get("unit", "kg"),
-                        "icon": product.get("icon", ""),
-                        "color": product.get("color", "#4CAF50"),
-                        "keywords": product.get("keywords", ""),
-                        "active": product.get("active", True),
-                        "sortOrder": product.get("sortOrder", 0),
-                    },
-                )
-                print(f"  🆕 [{i+1}/{len(products)}] Created: {product['nameEn']}")
-                updated += 1
-            except Exception as e2:
-                print(f"  ❌ [{i+1}/{len(products)}] Failed to create: {product['nameEn']} → {e2}")
-                failed += 1
-        else:
-            print(f"  ❌ [{i+1}/{len(products)}] Failed to update: {product['nameEn']} → {e}")
-            failed += 1
+        print(f"  ❌ [{i+1}/{len(products)}] Error: {product['nameEn']} → {e}")
+        failed += 1
 
     # Small delay to avoid rate limiting
     if (i + 1) % 10 == 0:

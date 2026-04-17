@@ -4,6 +4,7 @@ import '../providers/providers.dart';
 import '../core/constants/colors.dart';
 import '../core/constants/strings.dart';
 import '../data/models.dart';
+import '../widgets/shared_widgets.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/admin_users.dart';
 import 'screens/admin/admin_moderation.dart';
@@ -13,6 +14,7 @@ import 'screens/admin/admin_push_notifications_screen.dart';
 import 'screens/admin/admin_catalog_screen.dart';
 import 'screens/admin/admin_flower_prices_screen.dart';
 import 'screens/admin/admin_price_updaters_screen.dart';
+import 'screens/admin/admin_products_screen.dart';
 
 class AdminPortalScaffold extends StatefulWidget {
   const AdminPortalScaffold({super.key});
@@ -20,73 +22,38 @@ class AdminPortalScaffold extends StatefulWidget {
   State<AdminPortalScaffold> createState() => _AdminPortalScaffoldState();
 }
 
-class _AdminPortalScaffoldState extends State<AdminPortalScaffold> {
+class _AdminPortalScaffoldState extends State<AdminPortalScaffold> with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _isSidebarCollapsed = false;
+  late AnimationController _revealController;
 
   final List<(IconData, String, String, Widget)> _navItems = [
-    (
-      Icons.dashboard_outlined,
-      'Dashboard',
-      'டேஷ்போர்டு',
-      const AdminDashboard()
-    ),
-    (Icons.people_outline, 'Users', 'பயனர்கள்', const AdminUsersScreen()),
-    (
-      Icons.verified_outlined,
-      'Moderation',
-      'மிதமான',
-      const AdminModerationScreen()
-    ),
-    (
-      Icons.shopping_bag_outlined,
-      'Orders',
-      'ஆர்டர்கள்',
-      const AdminOrdersScreen()
-    ),
-    (
-      Icons.analytics_outlined,
-      'Analytics',
-      'பகுப்பாய்வு',
-      const AdminAnalyticsScreen()
-    ),
-    (
-      Icons.category_outlined,
-      'Catalog',
-      'பட்டியல்',
-      const AdminCatalogScreen()
-    ),
-    (
-      Icons.trending_up,
-      'Trending',
-      'ஃப்ரெண்டிங்',
-      const _TrendingProductsScreen()
-    ),
-    (
-      Icons.notifications_active_outlined,
-      'Push',
-      'புஷ்',
-      const AdminPushNotificationScreen()
-    ),
-    (
-      Icons.local_florist_outlined,
-      'Flower Prices',
-      'பூ விலைகள்',
-      const AdminFlowerPricesScreen()
-    ),
-    (
-      Icons.manage_accounts_outlined,
-      'Price Updaters',
-      'விலை குழு',
-      const AdminPriceUpdatersScreen()
-    ),
-    (
-      Icons.settings_outlined,
-      'Settings',
-      'அமைப்புகள்',
-      const _SettingsPlaceholder()
-    ),
+    (Icons.grid_view_rounded, 'Dashboard', 'டேஷ்போர்டு', const AdminDashboard()),
+    (Icons.group_rounded, 'Registry', 'பயனர்கள்', const AdminUsersScreen()),
+    (Icons.shield_rounded, 'Moderation', 'மிதமான', const AdminModerationScreen()),
+    (Icons.local_shipping_rounded, 'Logistics', 'ஆர்டர்கள்', const AdminOrdersScreen()),
+    (Icons.inventory_2_rounded, 'Inventory', 'தயாரிப்புகள்', const AdminProductsScreen()),
+    (Icons.analytics_rounded, 'Analytics', 'பகுப்பாய்வு', const AdminAnalyticsScreen()),
+    (Icons.layers_rounded, 'Catalog', 'பட்டியல்', const AdminCatalogScreen()),
+    (Icons.trending_up_rounded, 'Trending', 'ஃப்ரெண்டிங்', const _TrendingProductsScreen()),
+    (Icons.podcasts_rounded, 'Broadcast', 'புஷ்', const AdminPushNotificationScreen()),
+    (Icons.local_florist_rounded, 'Market Price', 'பூ விலைகள்', const AdminFlowerPricesScreen()),
+    (Icons.manage_accounts_rounded, 'Personnel', 'விலை குழு', const AdminPriceUpdatersScreen()),
+    (Icons.settings_rounded, 'Settings', 'அமைப்புகள்', const _SettingsPlaceholder()),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _revealController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _revealController.forward();
+  }
+
+  @override
+  void dispose() {
+    _revealController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,19 +61,30 @@ class _AdminPortalScaffoldState extends State<AdminPortalScaffold> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: C.surface,
+      backgroundColor: C.background,
+      drawerEnableOpenDragGesture: isMobile,
+      drawer: isMobile ? _buildSidebar(auth, isDrawer: true) : null,
       body: Row(
         children: [
           if (!isMobile) _buildSidebar(auth),
           Expanded(
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: _buildAppBar(auth, isMobile),
-              body: IndexedStack(
-                index: _selectedIndex,
-                children: _navItems.map((item) => item.$4).toList(),
-              ),
-              bottomNavigationBar: isMobile ? _buildBottomNav() : null,
+            child: Column(
+              children: [
+                _buildAppBar(auth, isMobile),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: C.background,
+                      borderRadius: isMobile ? BorderRadius.zero : const BorderRadius.only(topLeft: Radius.circular(32)),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: IndexedStack(
+                      index: _selectedIndex,
+                      children: _navItems.map((item) => HeroMode(enabled: false, child: item.$4)).toList(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -114,276 +92,236 @@ class _AdminPortalScaffoldState extends State<AdminPortalScaffold> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(AuthProvider auth, bool isMobile) {
-    return AppBar(
-      backgroundColor: C.surface,
-      elevation: 0,
-      centerTitle: false,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildAppBar(AuthProvider auth, bool isMobile) {
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: C.background,
+        border: Border(bottom: BorderSide(color: C.outlineVariant.withValues(alpha: 0.2))),
+      ),
+      child: Row(
         children: [
-          Text(
-            _navItems[_selectedIndex].$2,
-            style: const TextStyle(
-                fontWeight: FontWeight.w800, fontSize: 18, color: C.onSurface),
+          if (isMobile) 
+            Builder(builder: (context) => IconButton(icon: const Icon(Icons.menu_rounded), onPressed: () => Scaffold.of(context).openDrawer()))
+          else
+            IconButton(
+              icon: Icon(_isSidebarCollapsed ? Icons.menu_open_rounded : Icons.menu_rounded, color: C.onSurfaceVariant),
+              onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
+            ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_navItems[_selectedIndex].$2, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: C.onSurface, letterSpacing: -0.5)),
+                Text(_navItems[_selectedIndex].$3, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: C.onSurfaceVariant.withValues(alpha: 0.5), letterSpacing: 0.5)),
+              ],
+            ),
           ),
-          Text(
-            _navItems[_selectedIndex].$3,
-            style: const TextStyle(fontSize: 10, color: C.onSurfaceVariant),
-          ),
+          _buildActionIcons(auth, isMobile),
         ],
       ),
-      actions: [
+    );
+  }
+
+  Widget _buildActionIcons(AuthProvider auth, bool isMobile) {
+    return Row(
+      children: [
         IconButton(
-            icon: const Icon(Icons.refresh, size: 20),
-            onPressed: () => _refreshCurrentTab()),
-        if (isMobile)
-          IconButton(
-            icon: const Icon(Icons.logout, size: 20, color: C.onSurfaceVariant),
-            onPressed: () => _logout(auth),
-          )
-        else ...[
-          const SizedBox(width: 8),
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: C.primaryContainer,
-            child: Text(
-                auth.user?.name.isNotEmpty == true ? auth.user!.name[0] : 'A',
-                style: const TextStyle(
-                    color: C.onPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12)),
-          ),
-          const SizedBox(width: 16),
-        ],
+          icon: const Icon(Icons.refresh_rounded, size: 20),
+          onPressed: () => _refreshCurrentTab(),
+          tooltip: 'Refresh Intelligence',
+        ),
+        const SizedBox(width: 8),
+        Container(width: 1, height: 24, color: C.outlineVariant.withValues(alpha: 0.3)),
+        const SizedBox(width: 16),
+        _buildUserAvatar(auth),
       ],
     );
   }
 
+  Widget _buildUserAvatar(AuthProvider auth) {
+    return Container(
+      decoration: BoxDecoration(
+        color: C.primary.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+        border: Border.all(color: C.primary.withValues(alpha: 0.2)),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: CircleAvatar(
+        radius: 16,
+        backgroundColor: C.primary,
+        child: Text(
+          auth.user?.name.isNotEmpty == true ? auth.user!.name[0].toUpperCase() : 'A',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
+        ),
+      ),
+    );
+  }
+
   void _refreshCurrentTab() {
-    if (_selectedIndex == 0) context.read<AdminProvider>().loadStats();
-    if (_selectedIndex == 1) context.read<AdminProvider>().loadUsers();
-    if (_selectedIndex == 2)
-      context.read<AdminProvider>().loadPendingProducts();
-    if (_selectedIndex == 3) _refreshOrders();
-    if (_selectedIndex == 4) _refreshAnalytics();
-    if (_selectedIndex == 5)
-      context.read<AdminProvider>().loadProductTemplates();
-  }
-
-  void _refreshOrders() {
-    // Orders screen handles its own refresh
-  }
-
-  void _refreshAnalytics() {
-    // Analytics screen handles its own refresh
+    final admin = context.read<AdminProvider>();
+    switch (_selectedIndex) {
+      case 0: admin.loadStats(); break;
+      case 1: admin.loadUsers(); break;
+      case 2: admin.loadPendingProducts(); break;
+      case 4: admin.loadAllProducts(); break;
+      case 6: admin.loadProductTemplates(); break;
+    }
   }
 
   void _logout(AuthProvider auth) async {
     await auth.logout();
-    if (mounted)
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
-  Widget _buildSidebar(AuthProvider auth) {
+  Widget _buildSidebar(AuthProvider auth, {bool isDrawer = false}) {
+    final width = isDrawer ? 280.0 : (_isSidebarCollapsed ? 82.0 : 280.0);
+    
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: _isSidebarCollapsed ? 80 : 260,
-      color: C.surfaceContainerLow,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutQuart,
+      width: width,
+      decoration: BoxDecoration(
+        color: C.surfaceContainerLow,
+        border: Border(right: BorderSide(color: C.outlineVariant.withValues(alpha: 0.2))),
+      ),
       child: Column(
         children: [
           const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: _isSidebarCollapsed
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: C.primary,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                          color: C.primary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4))
-                    ],
-                  ),
-                  child: const Icon(Icons.eco, color: C.onPrimary, size: 24),
-                ),
-                if (!_isSidebarCollapsed) ...[
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(L.appName,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                              color: C.onSurface,
-                              letterSpacing: -0.5)),
-                      Text('ADMIN PANEL',
-                          style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: C.primary,
-                              letterSpacing: 1.2)),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
+          _buildSidebarHeader(isDrawer),
           const SizedBox(height: 48),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _navItems.length,
-              itemBuilder: (context, index) {
-                final item = _navItems[index];
-                final isSelected = _selectedIndex == index;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Material(
-                    color: isSelected ? C.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => setState(() => _selectedIndex = index),
-                      child: Container(
-                        height: 48,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: _isSidebarCollapsed ? 0 : 16),
-                        child: Row(
-                          mainAxisAlignment: _isSidebarCollapsed
-                              ? MainAxisAlignment.center
-                              : MainAxisAlignment.start,
-                          children: [
-                            Icon(item.$1,
-                                color: isSelected
-                                    ? C.onPrimary
-                                    : C.onSurfaceVariant,
-                                size: 22),
-                            if (!_isSidebarCollapsed) ...[
-                              const SizedBox(width: 12),
-                              Text(item.$2,
-                                  style: TextStyle(
-                                      color: isSelected
-                                          ? C.onPrimary
-                                          : C.onSurface,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.w500,
-                                      fontSize: 14)),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
+              itemBuilder: (context, index) => _buildNavItem(index, isDrawer),
             ),
           ),
-          const Divider(indent: 16, endIndent: 16),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _isSidebarCollapsed
-                ? IconButton(
-                    icon: const Icon(Icons.logout, color: C.error),
-                    onPressed: () => _logout(auth))
-                : Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                        color: C.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: C.outlineVariant.withValues(alpha: 0.5))),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                            radius: 16,
-                            backgroundColor: C.secondaryContainer,
-                            child: Text(
-                                auth.user?.name.isNotEmpty == true
-                                    ? auth.user!.name[0]
-                                    : 'A',
-                                style: const TextStyle(
-                                    color: C.onSecondaryContainer,
-                                    fontWeight: FontWeight.bold))),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(auth.user?.name ?? 'Admin',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: C.onSurface),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis),
-                              const Text('Administrator',
-                                  style: TextStyle(
-                                      fontSize: 10, color: C.onSurfaceVariant)),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                            icon: const Icon(Icons.logout,
-                                size: 18, color: C.onSurfaceVariant),
-                            onPressed: () => _logout(auth)),
-                      ],
-                    ),
-                  ),
-          ),
-          IconButton(
-            icon: Icon(
-                _isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
-                color: C.onSurfaceVariant),
-            onPressed: () =>
-                setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
-          ),
-          const SizedBox(height: 16),
+          _buildSidebarFooter(auth, isDrawer),
         ],
       ),
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: C.surface,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5))
+  Widget _buildSidebarHeader(bool isDrawer) {
+    final collapsed = !isDrawer && _isSidebarCollapsed;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [C.primary, Color(0xFF10b981)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [BoxShadow(color: C.primary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+            ),
+            child: const Icon(Icons.eco_rounded, color: Colors.white, size: 24),
+          ),
+          if (!collapsed) ...[
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(L.appName, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: C.onSurface, letterSpacing: -1, height: 1)),
+                  Text('ADMIN COMMAND', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: C.primary, letterSpacing: 1.5, height: 1.5)),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
-      child: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        selectedItemColor: C.primary,
-        unselectedItemColor: C.onSurfaceVariant,
-        selectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: _navItems
-            .map((item) => BottomNavigationBarItem(
-                  icon: Icon(item.$1),
-                  activeIcon: Icon(item.$1, color: C.primary),
-                  label: item.$2,
-                ))
-            .toList(),
+    );
+  }
+
+  Widget _buildNavItem(int index, bool isDrawer) {
+    final item = _navItems[index];
+    final isSelected = _selectedIndex == index;
+    final collapsed = !isDrawer && _isSidebarCollapsed;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() => _selectedIndex = index);
+            if (isDrawer) Navigator.pop(context);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? C.primary.withValues(alpha: 0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isSelected ? C.primary.withValues(alpha: 0.1) : Colors.transparent),
+            ),
+            child: Row(
+              mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              children: [
+                Icon(item.$1, color: isSelected ? C.primary : C.onSurfaceVariant, size: 22),
+                if (!collapsed) ...[
+                  const SizedBox(width: 14),
+                  Text(item.$2, style: TextStyle(color: isSelected ? C.onSurface : C.onSurfaceVariant, fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600, fontSize: 13, letterSpacing: 0.5)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarFooter(AuthProvider auth, bool isDrawer) {
+    final collapsed = !isDrawer && _isSidebarCollapsed;
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          if (!collapsed) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: C.surfaceContainerLowest, borderRadius: BorderRadius.circular(20), border: Border.all(color: C.outlineVariant.withValues(alpha: 0.2))),
+              child: Row(
+                children: [
+                  _buildUserAvatar(auth),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Administrator', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: C.onSurface)),
+                        Text('Active Session', style: TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () => _logout(auth),
+              icon: const Icon(Icons.logout_rounded, size: 18, color: C.error),
+              label: collapsed ? const SizedBox.shrink() : const Text('Terminate Session', style: TextStyle(color: C.error, fontSize: 12, fontWeight: FontWeight.w800)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: C.error.withValues(alpha: 0.05),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -393,17 +331,25 @@ class _SettingsPlaceholder extends StatelessWidget {
   const _SettingsPlaceholder();
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.settings_outlined, size: 64, color: C.outlineVariant),
-          SizedBox(height: 16),
-          Text('System Settings',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('Configuration options coming soon',
-              style: TextStyle(color: C.onSurfaceVariant)),
-        ],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: const BoxDecoration(color: C.surfaceContainerLow, shape: BoxShape.circle),
+              child: const Icon(Icons.settings_suggest_rounded, size: 64, color: C.primary),
+            ),
+            const SizedBox(height: 24),
+            const Text('System Configuration', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text('Advanced platform parameters and API integrations\nare being provisioned for the executive layer.', 
+              textAlign: TextAlign.center, 
+              style: TextStyle(color: C.onSurfaceVariant.withValues(alpha: 0.6), height: 1.5)),
+          ],
+        ),
       ),
     );
   }
@@ -415,153 +361,97 @@ class _TrendingProductsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final products = context.watch<ProductProvider>().all;
-
-    // Sort by rating and reviews to find trending
-    final trending = List<ProductModel>.from(products)
-      ..sort((a, b) {
-        final scoreA = a.rating * 10 + a.reviews;
-        final scoreB = b.rating * 10 + b.reviews;
-        return scoreB.compareTo(scoreA);
-      });
+    final trending = List<ProductModel>.from(products)..sort((a, b) => (b.rating * 10 + b.reviews).compareTo(a.rating * 10 + a.reviews));
+    final pad = adaptivePadding(context);
 
     return Scaffold(
-      backgroundColor: C.background,
+      backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: pad,
+        physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.orange, Colors.red]),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.trending_up, color: Colors.white, size: 28),
-                  SizedBox(width: 12),
-                  Text(
-                    'Trending Products',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (trending.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(Icons.trending_flat, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('No trending data yet',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ListView.separated(
+            const Text('Market Intelligence', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1)),
+            const SizedBox(height: 4),
+            Text('Evaluating product performance based on rating velocity and engagement', style: TextStyle(fontSize: 13, color: C.onSurfaceVariant.withValues(alpha: 0.6))),
+            const SizedBox(height: 32),
+            if (trending.isEmpty) 
+               const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 100), child: Text('No trending markers identified')))
+            else 
+              ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: trending.length.clamp(0, 20),
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final product = trending[index];
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: C.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: index < 3
-                            ? Colors.orange.withValues(alpha: 0.3)
-                            : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: index == 0
-                                ? Colors.amber
-                                : index == 1
-                                    ? Colors.grey
-                                    : Colors.brown,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '#${index + 1}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product.name,
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w800),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${product.farmerName} • ${product.location}',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.star,
-                                    size: 16, color: Colors.amber),
-                                const SizedBox(width: 4),
-                                Text(product.rating.toStringAsFixed(1),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w700)),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text('${product.reviews} reviews',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.grey.shade600)),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          '₹${product.price.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: C.primary),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                itemCount: trending.length.take(15).length,
+                itemBuilder: (context, index) => _TrendingCard(product: trending[index], rank: index + 1),
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+extension TakeExtension on int {
+  List<int> take(int n) => List.generate(this < n ? this : n, (i) => i);
+}
+
+class _TrendingCard extends StatelessWidget {
+  final ProductModel product;
+  final int rank;
+  const _TrendingCard({required this.product, required this.rank});
+
+  @override
+  Widget build(BuildContext context) {
+    final topThree = rank <= 3;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: C.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: topThree ? C.primary.withValues(alpha: 0.2) : C.outlineVariant.withValues(alpha: 0.3)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: topThree ? C.primary : C.surfaceContainerLow,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text('#$rank', style: TextStyle(color: topThree ? Colors.white : C.onSurfaceVariant, fontWeight: FontWeight.w900, fontSize: 16)),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(product.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                Text('Distributed by ${product.farmerName}', style: TextStyle(fontSize: 11, color: C.onSurfaceVariant.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, size: 18, color: Colors.amber),
+                  const SizedBox(width: 4),
+                  Text(product.rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                ],
+              ),
+              Text('${product.reviews} interactions', style: TextStyle(fontSize: 10, color: C.onSurfaceVariant.withValues(alpha: 0.5), fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(width: 24),
+          Text('₹${product.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: C.primary, letterSpacing: -0.5)),
+        ],
       ),
     );
   }

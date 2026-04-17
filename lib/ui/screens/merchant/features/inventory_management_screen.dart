@@ -46,22 +46,20 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                     Container(
                       height: 240,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [C.primary, C.primaryContainer],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: C.background,
                       ),
                     ),
                     Positioned(
-                      top: -60,
-                      right: -60,
+                      top: -100,
+                      right: -100,
                       child: Container(
-                        width: 250,
-                        height: 250,
+                        width: 400,
+                        height: 400,
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: C.onPrimary.withValues(alpha: 0.1)),
+                            gradient: RadialGradient(
+                              colors: [C.primary.withValues(alpha: 0.15), Colors.transparent],
+                            )),
                       ),
                     ),
                     Padding(
@@ -72,7 +70,7 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                           const Text(
                             'STRATEGIC RESERVES',
                             style: TextStyle(
-                                color: C.tertiaryFixed,
+                                color: C.primary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 2),
@@ -84,25 +82,25 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
                               const Text(
                                 'INVENTORY',
                                 style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
+                                    color: C.onSurface,
+                                    fontSize: 32,
                                     fontWeight: FontWeight.w900,
-                                    letterSpacing: -1),
+                                    letterSpacing: -1.5),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.1),
+                                  color: C.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                       color:
-                                          Colors.white.withValues(alpha: 0.2)),
+                                          C.primary.withValues(alpha: 0.2)),
                                 ),
                                 child: Text(
                                   '₹${totalValue.toStringAsFixed(0)}',
                                   style: const TextStyle(
-                                      color: Colors.white,
+                                      color: C.primary,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 14),
                                 ),
@@ -225,14 +223,16 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InteractiveCard(
+      scaleFactor: 0.98,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: C.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 20,
                 offset: const Offset(0, 10)),
           ],
@@ -253,17 +253,18 @@ class _SummaryCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(label,
-                      style: const TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.grey,
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: C.onSurfaceVariant.withValues(alpha: 0.5),
                           letterSpacing: 0.5)),
                   const SizedBox(height: 2),
                   Text(value,
                       style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          color: C.onSurface)),
+                          color: C.onSurface,
+                          letterSpacing: -0.5)),
                 ],
               ),
             ),
@@ -295,10 +296,10 @@ class _FilterTab extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? C.primary : Colors.white,
+          color: isActive ? C.primary : C.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(30),
           border:
-              Border.all(color: isActive ? C.primary : Colors.grey.shade200),
+              Border.all(color: isActive ? C.primary : C.outlineVariant.withValues(alpha: 0.5)),
           boxShadow: isActive
               ? [
                   BoxShadow(
@@ -313,7 +314,7 @@ class _FilterTab extends StatelessWidget {
           style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              color: isActive ? Colors.white : Colors.grey.shade600),
+              color: isActive ? Colors.white : C.onSurfaceVariant),
         ),
       ),
     );
@@ -333,11 +334,12 @@ class _InventoryCardModern extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: C.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: C.outlineVariant.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 30,
               offset: const Offset(0, 15)),
         ],
@@ -614,7 +616,7 @@ class _StatTile extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color:
-              highlight ? color.withValues(alpha: 0.05) : Colors.grey.shade50,
+              highlight ? color.withValues(alpha: 0.05) : C.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -623,7 +625,7 @@ class _StatTile extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
-                    color: highlight ? color : Colors.grey.shade500,
+                    color: highlight ? color : C.onSurfaceVariant.withValues(alpha: 0.5),
                     letterSpacing: 0.5)),
             const SizedBox(height: 4),
             Text(value,

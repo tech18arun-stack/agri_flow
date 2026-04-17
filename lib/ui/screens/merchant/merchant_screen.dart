@@ -32,21 +32,30 @@ class _MerchantScreenState extends State<MerchantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _buildPage(_currentIndex),
-      bottomNavigationBar: FloatingGlassNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: [
-          FloatingGlassNavItem(icon: Icons.grid_view_rounded, label: 'Dash'),
-          FloatingGlassNavItem(icon: Icons.shopping_bag_rounded, label: 'Buy'),
-          FloatingGlassNavItem(icon: Icons.inventory_rounded, label: 'Stock'),
-          FloatingGlassNavItem(
-              icon: Icons.rocket_launch_rounded, label: 'Sell'),
-          FloatingGlassNavItem(icon: Icons.analytics_rounded, label: 'P&L'),
-        ],
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+        }
+      },
+      child: Scaffold(
+        body: _buildPage(_currentIndex),
+        bottomNavigationBar: FloatingGlassNavBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: [
+            FloatingGlassNavItem(icon: Icons.grid_view_rounded, label: 'Dash'),
+            FloatingGlassNavItem(icon: Icons.shopping_bag_rounded, label: 'Buy'),
+            FloatingGlassNavItem(icon: Icons.inventory_rounded, label: 'Stock'),
+            FloatingGlassNavItem(
+                icon: Icons.rocket_launch_rounded, label: 'Sell'),
+            FloatingGlassNavItem(icon: Icons.analytics_rounded, label: 'P&L'),
+          ],
+        ),
+        extendBody: true,
       ),
-      extendBody: true,
     );
   }
 
@@ -130,22 +139,20 @@ class _MerchantDashboardState extends State<_MerchantDashboard> {
                     Container(
                       height: 320,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [C.primary, C.primaryContainer],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: C.background,
                       ),
                     ),
                     Positioned(
-                      top: -60,
-                      right: -60,
+                      top: -100,
+                      right: -100,
                       child: Container(
-                        width: 250,
-                        height: 250,
+                        width: 400,
+                        height: 400,
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: C.onPrimary.withValues(alpha: 0.1)),
+                            gradient: RadialGradient(
+                              colors: [C.primary.withValues(alpha: 0.15), Colors.transparent],
+                            )),
                       ),
                     ),
                     Padding(
@@ -162,7 +169,7 @@ class _MerchantDashboardState extends State<_MerchantDashboard> {
                                     const Text(
                                       'AGRI-FLOW CORE',
                                       style: TextStyle(
-                                          color: C.tertiaryFixed,
+                                          color: C.primary,
                                           fontSize: 10,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 2),
@@ -172,10 +179,10 @@ class _MerchantDashboardState extends State<_MerchantDashboard> {
                                       (auth.user?.name ?? 'ELITE MERCHANT')
                                           .toUpperCase(),
                                       style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 24,
+                                          color: C.onSurface,
+                                          fontSize: 28,
                                           fontWeight: FontWeight.w900,
-                                          letterSpacing: -0.5),
+                                          letterSpacing: -1),
                                     ),
                                   ],
                                 ),
@@ -188,10 +195,10 @@ class _MerchantDashboardState extends State<_MerchantDashboard> {
                                   decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                          color: C.onPrimary, width: 2)),
+                                          color: C.primary.withValues(alpha: 0.2), width: 2)),
                                   child: CircleAvatar(
                                     radius: 24,
-                                    backgroundColor: C.primaryContainer,
+                                    backgroundColor: C.primary,
                                     child: Text(
                                       auth.user?.name != null &&
                                               auth.user!.name.isNotEmpty
@@ -199,7 +206,8 @@ class _MerchantDashboardState extends State<_MerchantDashboard> {
                                           : 'M',
                                       style: const TextStyle(
                                           color: Colors.white,
-                                          fontWeight: FontWeight.w900),
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 20),
                                     ),
                                   ),
                                 ),
@@ -209,24 +217,30 @@ class _MerchantDashboardState extends State<_MerchantDashboard> {
                           const SizedBox(height: 40),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(24),
-                            child: GlassContainer(
-                              blur: 20,
-                              opacity: 0.05,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: C.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: C.outlineVariant.withValues(alpha: 0.5)),
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                                ]
+                              ),
                               child: TextField(
                                 controller: _searchController,
                                 onChanged: (v) =>
                                     setState(() => _searchQuery = v),
                                 style: const TextStyle(
-                                    color: Colors.white,
+                                    color: C.onSurface,
                                     fontWeight: FontWeight.w600),
                                 decoration: InputDecoration(
                                   hintText: 'Search operations and metrics...',
                                   hintStyle: TextStyle(
                                       color:
-                                          Colors.white.withValues(alpha: 0.3),
+                                          C.onSurfaceVariant.withValues(alpha: 0.4),
                                       fontSize: 14),
                                   prefixIcon: const Icon(Icons.search_rounded,
-                                      color: Colors.white70, size: 22),
+                                      color: C.primary, size: 22),
                                   border: InputBorder.none,
                                   contentPadding:
                                       const EdgeInsets.symmetric(vertical: 20),
@@ -446,14 +460,16 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InteractiveCard(
+      scaleFactor: 0.98,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: C.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 20,
                 offset: const Offset(0, 10)),
           ],
@@ -472,10 +488,17 @@ class _MetricCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12)),
                   child: Icon(icon, color: color, size: 20),
                 ),
-                Text(
-                  trend,
-                  style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.w900, color: color),
+                Container(
+                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                   decoration: BoxDecoration(
+                     color: color.withValues(alpha: 0.05),
+                     borderRadius: BorderRadius.circular(8),
+                   ),
+                   child: Text(
+                    trend,
+                    style: TextStyle(
+                        fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5),
+                  ),
                 ),
               ],
             ),
@@ -484,17 +507,17 @@ class _MetricCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.grey,
+                      fontWeight: FontWeight.w800,
+                      color: C.onSurfaceVariant.withValues(alpha: 0.5),
                       letterSpacing: 0.5),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
                   style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 24,
                       fontWeight: FontWeight.w900,
                       color: C.onSurface,
                       letterSpacing: -1),
@@ -593,26 +616,18 @@ class _BulkProductCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Image Area
               Container(
                 width: 110,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      C.primary.withValues(alpha: 0.05),
-                      C.primary.withValues(alpha: 0.1)
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: C.surfaceContainer,
                   borderRadius:
                       const BorderRadius.horizontal(left: Radius.circular(24)),
                 ),
                 child: Center(
                   child: Icon(
                     _getCategoryIcon(product.category),
-                    size: 44,
-                    color: C.primary.withValues(alpha: 0.3),
+                    size: 40,
+                    color: C.onSurfaceVariant.withValues(alpha: 0.2),
                   ),
                 ),
               ),

@@ -1,0 +1,36 @@
+{
+  "appwrite": {
+    "endpoint": "https://api.websitescorp.com/v1",
+    "projectId": "69d5d5ff0014699913f4",
+    "databaseId": "69d5d6770036e6c9bfc"
+  },
+  "collections": {
+    "users": "users",
+    "products": "products",
+    "orders": "orders",
+    "cart": "cart",
+    "transactions": "transactions",
+    "bids": "bids",
+    "reviews": "reviews",
+    "notifications": "notifications",
+    "price_logs": "price_logs",
+    "aggregated_prices": "aggregated_prices",
+    "price_trends": "price_trends",
+    "categories": "categories",
+    "districts": "districts",
+    "app_settings": "app_settings",
+    "talukas": "talukas",
+    "municipalities": "municipalities",
+    "loi_requests": "loi_requests",
+    "product_templates": "product_templates",
+    "flower_prices": "flower_prices",
+    "flower_catalog": "flower_catalog"
+  },
+  "buckets": {
+    "product_images": "product_images",
+    "profile_images": "profile_images"
+  },
+  "maps": {
+    "maptiler_key": "eBVGyj1xRKZtAPdAnvmv"
+  }
+}

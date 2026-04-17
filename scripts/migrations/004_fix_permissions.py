@@ -13,7 +13,10 @@ import sys
 import io
 from dotenv import load_dotenv
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+if __name__ == "__main__":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    run()
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)

@@ -364,7 +364,33 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 32),
+                              const SizedBox(height: 12),
+                              // Forgot Password
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () =>
+                                      _showForgotPasswordDialog(context),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(50, 30),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    _showTamil
+                                        ? 'கடவுச்சொல்லை மறந்துவிட்டீர்களா?'
+                                        : 'Forgot Password?',
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.7),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
 
                               // Sign In Button
                               if (auth.loading)
@@ -487,6 +513,131 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
   }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    final emailCtrl = TextEditingController(text: _emailCtrl.text);
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: GlassContainer(
+            padding: const EdgeInsets.all(24),
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_reset_rounded,
+                    color: Color(0xFF16A34A), size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  _showTamil ? 'கடவுச்சொல் மீட்பு' : 'Recover Password',
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _showTamil
+                      ? 'மீட்பு இணைப்பைப் பெற உங்கள் மின்னஞ்சலை உள்ளிடவும்'
+                      : 'Enter your email to receive a password reset link.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.white.withValues(alpha: 0.7)),
+                ),
+                const SizedBox(height: 24),
+                GlassContainer(
+                  blur: 15,
+                  opacity: 0.1,
+                  borderRadius: BorderRadius.circular(16),
+                  child: TextField(
+                    controller: emailCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Email Address',
+                      hintStyle: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.6)),
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          _showTamil ? 'ரத்துசெய்' : 'CANCEL',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InteractiveCard(
+                        onTap: () async {
+                          final email = emailCtrl.text.trim();
+                          if (email.isEmpty) return;
+
+                          Navigator.pop(context);
+                          final success = await context
+                              .read<AuthProvider>()
+                              .requestPasswordReset(email);
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(success
+                                    ? (_showTamil
+                                        ? 'மீட்பு மின்னஞ்சல் அனுப்பப்பட்டது'
+                                        : 'Recovery email sent!')
+                                    : (context.read<AuthProvider>().error ??
+                                        'Error sending email')),
+                                backgroundColor: success
+                                    ? const Color(0xFF16A34A)
+                                    : Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16A34A),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _showTamil ? 'அனுப்பு' : 'SEND',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _RoleSelectorModern extends StatelessWidget {
@@ -587,7 +738,7 @@ class _RoleTab extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
+        child: SizedBox(
           height: 48,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

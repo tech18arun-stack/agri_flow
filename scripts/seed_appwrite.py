@@ -9,6 +9,7 @@ import os
 import sys
 import io
 import warnings
+import json
 from dotenv import load_dotenv
 
 # Fix Windows console encoding for emojis
@@ -97,21 +98,24 @@ def seed_categories(db):
             print(f"  ❌ {name}: {e}")
 
 
+def load_admin_data():
+    data_path = os.path.join(os.path.dirname(__file__), 'data', 'administrative_units_tn.json')
+    try:
+        with open(data_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"❌ Error loading administrative data: {e}")
+        return {"districts": []}
+
+
 def seed_districts(db):
-    print("\n📍 Seeding districts...")
-    districts = [
-        ("dist_coimbatore", "Coimbatore", "கோயம்புத்தூர்", "Kongu"),
-        ("dist_salem", "Salem", "சேலம்", "Kongu"),
-        ("dist_madurai", "Madurai", "மதுரை", "Southern"),
-        ("dist_erode", "Erode", "ஈரோடு", "Kongu"),
-        ("dist_thanjavur", "Thanjavur", "தஞ்சாவூர்", "Delta"),
-        ("dist_nilgiris", "Nilgiris", "நீலகிரி", "Western"),
-        ("dist_trichy", "Trichy", "திருச்சி", "Central"),
-        ("dist_dindigul", "Dindigul", "திண்டுக்கல்", "Southern"),
-        ("dist_theni", "Theni", "தேனி", "Southern"),
-        ("dist_chennai", "Chennai", "சென்னை", "Northern"),
-    ]
-    for did, name, nameTa, region in districts:
+    print("\n📍 Seeding districts (38)...")
+    data = load_admin_data()
+    for dist in data.get("districts", []):
+        did = f"dist_{dist['id']}"
+        name = dist['name']
+        nameTa = dist['nameTa']
+        region = dist.get('region', 'Tamil Nadu')
         try:
             safe_insert(db, "districts", did, {
                 "name": name, "nameTa": nameTa, "region": region, "active": True,
@@ -119,6 +123,109 @@ def seed_districts(db):
             print(f"  ✅ {name} / {nameTa}")
         except Exception as e:
             print(f"  ❌ {name}: {e}")
+
+
+def seed_talukas(db):
+    print("\n📍 Seeding talukas...")
+    data = load_admin_data()
+    for dist in data.get("districts", []):
+        district_name = dist['name']
+        for taluk in dist.get("talukas", []):
+            # Clean taluk name for ID
+            tid = f"tkl_{taluk.lower().replace(' ', '_').replace('.', '')}"
+            name = taluk
+            # For now, we use English for nameTa as well unless we find a mapping
+            nameTa = taluk 
+            try:
+                safe_insert(db, "talukas", tid, {
+                    "name": name, "nameTa": nameTa, "district": district_name, "active": True,
+                })
+                print(f"  ✅ {name} ({district_name})")
+            except Exception as e:
+                # If ID collision occurs, add district prefix
+                if "already exists" not in str(e).lower():
+                    tid = f"tkl_{dist['id']}_{taluk.lower().replace(' ', '_')}"
+                    try:
+                        safe_insert(db, "talukas", tid, {
+                            "name": name, "nameTa": nameTa, "district": district_name, "active": True,
+                        })
+                        print(f"  ✅ {name} ({district_name})")
+                    except Exception as e2:
+                        print(f"  ❌ {name}: {e2}")
+
+
+def seed_product_templates(db):
+    print("\n🌿 Seeding product templates (Master Catalog)...")
+    
+    # Try to load from JSON first for consistency with migrations
+    json_path = os.path.join(os.path.dirname(__file__), 'migrations', 'product_templates.json')
+    templates = []
+    
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                templates_json = json.load(f)
+                # Map JSON fields to script format
+                for t in templates_json:
+                    templates.append({
+                        "id": t['id'], "nameEn": t['nameEn'], "nameTa": t['nameTa'], 
+                        "category": t['category'], "unit": t.get('unit', 'kg'), 
+                        "icon": t.get('icon', '🌾'), "color": t.get('color', '#4CAF50'),
+                        "keywords": t.get('keywords', ''), "imageUrl": t.get('imageUrl', '')
+                    })
+            print(f"  📊 Loaded {len(templates)} templates from JSON master")
+        except Exception as e:
+            print(f"  ⚠️ Failed to load JSON, using fallback: {e}")
+
+    if not templates:
+        # Fallback list if JSON is missing
+        templates = [
+            {"id": "tmpl_tomato", "nameEn": "Tomato", "nameTa": "தக்காளி", "category": "vegetables", "unit": "kg", "icon": "🍅", "color": "#EF4444", "keywords": "tomato,thakkali", "imageUrl": ""},
+            {"id": "tmpl_onion", "nameEn": "Onion", "nameTa": "வெங்காயம்", "category": "vegetables", "unit": "kg", "icon": "🧅", "color": "#F97316", "keywords": "onion,vengayam", "imageUrl": ""},
+            {"id": "tmpl_brinjal", "nameEn": "Brinjal", "nameTa": "கத்திரிக்காய்", "category": "vegetables", "unit": "kg", "icon": "🍆", "color": "#8B5CF6", "keywords": "brinjal,kathirikkai", "imageUrl": ""},
+        ]
+
+    # Fetch existing to avoid duplicates and preserve images
+    existing_docs = {}
+    try:
+        result = db.list_documents(DATABASE_ID, "product_templates", [Query.limit(100)])
+        for doc in result.get('documents', []):
+            existing_docs[doc['$id']] = doc
+    except:
+        pass
+
+    for t in templates:
+        tid = t['id']
+        nameEn = t['nameEn']
+        
+        data = {
+            "id": tid,
+            "nameEn": nameEn,
+            "nameTa": t['nameTa'],
+            "category": t['category'],
+            "unit": t['unit'],
+            "icon": t['icon'],
+            "color": t['color'],
+            "keywords": t['keywords'],
+            "active": True,
+            "sortOrder": 0,
+            "imageUrl": t['imageUrl'] 
+        }
+
+        try:
+            if tid in existing_docs:
+                # Document exists, update it but preserve image from DB
+                existing = existing_docs[tid]
+                if existing.get('imageUrl'):
+                    data['imageUrl'] = existing['imageUrl']
+                
+                db.update_document(DATABASE_ID, "product_templates", tid, data)
+                print(f"  🔄 Updated {nameEn}")
+            else:
+                db.create_document(DATABASE_ID, "product_templates", tid, data)
+                print(f"  ✅ Created {nameEn}")
+        except Exception as e:
+            print(f"  ❌ {nameEn}: {e}")
 
 
 def seed_settings(db):
@@ -141,77 +248,6 @@ def seed_settings(db):
             print(f"  ✅ {key}: {value}")
         except Exception as e:
             print(f"  ❌ {key}: {e}")
-
-
-def seed_talukas(db):
-    print("\n📍 Seeding talukas...")
-    talukas = [
-        # Coimbatore
-        ("tkl_coimbatore_north", "Coimbatore North", "கோயம்புத்தூர் வடக்கு", "Coimbatore"),
-        ("tkl_coimbatore_south", "Coimbatore South", "கோயம்புத்தூர் தெற்கு", "Coimbatore"),
-        ("tkl_pollachi", "Pollachi", "பொள்ளாச்சி", "Coimbatore"),
-        ("tkl_valparai", "Valparai", "வால்பாறை", "Coimbatore"),
-        ("tkl_sulur", "Sulur", "சூலூர்", "Coimbatore"),
-        # Salem
-        ("tkl_salem_north", "Salem North", "சேலம் வடக்கு", "Salem"),
-        ("tkl_salem_south", "Salem South", "சேலம் தெற்கு", "Salem"),
-        ("tkl_attur", "Attur", "ஆத்தூர்", "Salem"),
-        ("tkl_mettur", "Mettur", "மேட்டூர்", "Salem"),
-        ("tkl_sankagiri", "Sankagiri", "சங்ககிரி", "Salem"),
-        # Madurai
-        ("tkl_madurai_north", "Madurai North", "மதுரை வடக்கு", "Madurai"),
-        ("tkl_madurai_south", "Madurai South", "மதுரை தெற்கு", "Madurai"),
-        ("tkl_melur", "Melur", "மேலூர்", "Madurai"),
-        ("tkl_thirumangalam", "Thirumangalam", "திருமங்கலம்", "Madurai"),
-        ("tkl_usilampatti", "Usilampatti", "உசிலம்பட்டி", "Madurai"),
-        # Erode
-        ("tkl_erode_north", "Erode North", "ஈரோடு வடக்கு", "Erode"),
-        ("tkl_erode_south", "Erode South", "ஈரோடு தெற்கு", "Erode"),
-        ("tkl_gobichettipalayam", "Gobichettipalayam", "கொபிச்செட்டிபாளையம்", "Erode"),
-        ("tkl_perundurai", "Perundurai", "பெருந்துறை", "Erode"),
-        ("tkl_bhavani", "Bhavani", "பவானி", "Erode"),
-        # Thanjavur
-        ("tkl_thanjavur", "Thanjavur", "தஞ்சாவூர்", "Thanjavur"),
-        ("tkl_kumbakonam", "Kumbakonam", "கும்பகோணம்", "Thanjavur"),
-        ("tkl_pattukkottai", "Pattukkottai", "பட்டுக்கோட்டை", "Thanjavur"),
-        ("tkl_thiruvaiyaru", "Thiruvaiyaru", "திருவையாறு", "Thanjavur"),
-        # Nilgiris
-        ("tkl_udhagamandalam", "Udhagamandalam", "உதகமண்டலம்", "Nilgiris"),
-        ("tkl_coonoor", "Coonoor", "கன்னூர்", "Nilgiris"),
-        ("tkl_gudalur", "Gudalur", "குடலூர்", "Nilgiris"),
-        ("tkl_kundah", "Kundah", "குந்தா", "Nilgiris"),
-        # Trichy
-        ("tkl_trichy_north", "Trichy North", "திருச்சி வடக்கு", "Trichy"),
-        ("tkl_trichy_south", "Trichy South", "திருச்சி தெற்கு", "Trichy"),
-        ("tkl_lalgudi", "Lalgudi", "லால்குடி", "Trichy"),
-        ("tkl_thuraiyur", "Thuraiyur", "துறையூர்", "Trichy"),
-        ("tkl_manachanallur", "Manachanallur", "மானச்சனல்லூர்", "Trichy"),
-        # Dindigul
-        ("tkl_dindigul", "Dindigul", "திண்டுக்கல்", "Dindigul"),
-        ("tkl_natham", "Natham", "நாதம்", "Dindigul"),
-        ("tkl_nilakottai", "Nilakottai", "நிலக்கோட்டை", "Dindigul"),
-        ("tkl_vedasandur", "Vedasandur", "வேடசந்தூர்", "Dindigul"),
-        ("tkl_palani", "Palani", "பழனி", "Dindigul"),
-        # Theni
-        ("tkl_theni", "Theni", "தேனி", "Theni"),
-        ("tkl_bodinayakkanur", "Bodinayakkanur", "போடிநாயக்கனூர்", "Theni"),
-        ("tkl_periyakulam", "Periyakulam", "பெரியகுளம்", "Theni"),
-        ("tkl_uttamapalayam", "Uttamapalayam", "உத்தமபாளையம்", "Theni"),
-        # Chennai
-        ("tkl_chennai_north", "Chennai North", "சென்னை வடக்கு", "Chennai"),
-        ("tkl_chennai_central", "Chennai Central", "சென்னை மையம்", "Chennai"),
-        ("tkl_chennai_south", "Chennai South", "சென்னை தெற்கு", "Chennai"),
-        ("tkl_ambattur", "Ambattur", "ஆம்பத்தூர்", "Chennai"),
-        ("tkl_tambaram", "Tambaram", "தமபரம்", "Chennai"),
-    ]
-    for tid, name, nameTa, district in talukas:
-        try:
-            safe_insert(db, "talukas", tid, {
-                "name": name, "nameTa": nameTa, "district": district, "active": True,
-            })
-            print(f"  ✅ {name} ({district})")
-        except Exception as e:
-            print(f"  ❌ {name}: {e}")
 
 
 def seed_municipalities(db):
@@ -309,6 +345,7 @@ def main():
         seed_districts(db)
         seed_talukas(db)
         seed_municipalities(db)
+        seed_product_templates(db)
         seed_settings(db)
 
         print("\n" + "=" * 60)

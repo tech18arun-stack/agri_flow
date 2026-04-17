@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/providers.dart';
 import '../../../core/constants/colors.dart';
-import 'package:intl/intl.dart';
+import '../../../providers/providers.dart';
+import '../../../widgets/shared_widgets.dart';
+import '../../../core/constants/strings.dart';
 
 class AdminAnalyticsScreen extends StatefulWidget {
   const AdminAnalyticsScreen({super.key});
@@ -11,52 +12,50 @@ class AdminAnalyticsScreen extends StatefulWidget {
   State<AdminAnalyticsScreen> createState() => _AdminAnalyticsScreenState();
 }
 
-class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
+class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with SingleTickerProviderStateMixin {
   bool _loading = false;
   Map<String, dynamic> _analytics = {};
+  late AnimationController _fadeController;
 
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
     _loadAnalytics();
   }
 
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadAnalytics() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     try {
       final products = context.read<ProductProvider>().all;
       final orders = context.read<OrderProvider>().orders;
       final users = context.read<AdminProvider>().users;
 
-      // Calculate metrics
       final totalProducts = products.length;
       final totalOrders = orders.length;
       final totalRevenue = orders.where((o) => o.status != 'cancelled').fold(0.0, (sum, o) => sum + o.total);
       final avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       
-      // Top products by orders
       final productOrderCount = <String, int>{};
       for (final order in orders) {
         productOrderCount[order.farmerName] = (productOrderCount[order.farmerName] ?? 0) + 1;
       }
       final topFarmers = productOrderCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
-      // Category distribution
       final categoryCount = <String, int>{};
       for (final product in products) {
         categoryCount[product.category] = (categoryCount[product.category] ?? 0) + 1;
       }
-
-      // User growth (last 7 days)
-      final now = DateTime.now();
-      final userGrowth = List.generate(7, (i) {
-        final date = now.subtract(Duration(days: 6 - i));
-        final count = users.where((u) {
-          // Approximate - in real app would use createdAt field
-          return true;
-        }).length;
-        return {'date': DateFormat('MMM dd').format(date), 'count': count};
-      });
 
       _analytics = {
         'totalProducts': totalProducts,
@@ -65,180 +64,300 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
         'avgOrderValue': avgOrderValue,
         'topFarmers': topFarmers.take(5).toList(),
         'categoryDistribution': categoryCount,
-        'userGrowth': userGrowth,
         'totalUsers': users.length,
       };
+      _fadeController.forward();
     } catch (e) {
       debugPrint('Error loading analytics: $e');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: C.primary));
     }
+
+    final web = isWeb(context);
+    final pad = adaptivePadding(context);
 
     return Scaffold(
       backgroundColor: C.background,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Key Metrics
-            const Text('Key Metrics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 12),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.5,
-              children: [
-                _MetricCard(
-                  icon: Icons.shopping_bag,
-                  label: 'Total Orders',
-                  value: '${_analytics['totalOrders'] ?? 0}',
-                  color: Colors.blue,
-                ),
-                _MetricCard(
-                  icon: Icons.currency_rupee,
-                  label: 'Total Revenue',
-                  value: '₹${(_analytics['totalRevenue'] ?? 0.0).toStringAsFixed(0)}',
-                  color: Colors.green,
-                ),
-                _MetricCard(
-                  icon: Icons.receipt_long,
-                  label: 'Avg Order Value',
-                  value: '₹${(_analytics['avgOrderValue'] ?? 0.0).toStringAsFixed(0)}',
-                  color: Colors.orange,
-                ),
-                _MetricCard(
-                  icon: Icons.people,
-                  label: 'Total Users',
-                  value: '${_analytics['totalUsers'] ?? 0}',
-                  color: Colors.purple,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Top Farmers
-            const Text('🏆 Top Farmers by Orders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 12),
-            ...(_analytics['topFarmers'] as List<dynamic>? ?? []).map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: C.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: C.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.agriculture, color: C.primary),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          entry.key,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      Text(
-                        '${entry.value} orders',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-
-            const SizedBox(height: 24),
-
-            // Category Distribution
-            const Text('📊 Category Distribution', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 12),
-            ...(_analytics['categoryDistribution'] as Map<String, int>? ?? {}).entries.map((entry) {
-              final percentage = (_analytics['totalProducts'] as int? ?? 1) > 0
-                  ? (entry.value / (_analytics['totalProducts'] as int)) * 100
-                  : 0;
+        padding: pad,
+        physics: const BouncingScrollPhysics(),
+        child: FadeTransition(
+          opacity: _fadeController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(web),
+              const SizedBox(height: 24),
               
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
+              // Bento Stats Grid
+              _buildBentoStats(web),
+              
+              const SizedBox(height: 32),
+              
+              if (web)
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(entry.key, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                        Text('${entry.value} (${percentage.toStringAsFixed(0)}%)', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: percentage / 100,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation(C.primary),
-                      minHeight: 8,
-                    ),
+                    Expanded(flex: 3, child: _buildTopFarmers()),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 2, child: _buildCategoryDistribution()),
                   ],
-                ),
-              );
-            }),
+                )
+              else ...[
+                _buildTopFarmers(),
+                const SizedBox(height: 32),
+                _buildCategoryDistribution(),
+              ],
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool web) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            BiLabel(
+              en: L.analytics,
+              ta: L.analyticsTa,
+              enSize: web ? 28 : 20,
+              enWeight: FontWeight.w900,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Deep insights into platform economics',
+              style: TextStyle(
+                fontSize: 13,
+                color: C.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
           ],
         ),
+        _buildRefreshButton(),
+      ],
+    );
+  }
+
+  Widget _buildRefreshButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: C.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: C.primary.withValues(alpha: 0.1)),
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.refresh_rounded, color: C.primary, size: 20),
+        onPressed: _loadAnalytics,
+      ),
+    );
+  }
+
+  Widget _buildBentoStats(bool web) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: web ? 4 : 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: web ? 1.5 : 1.2,
+      children: [
+        _ModernMetricCard(
+          label: 'Total Orders',
+          value: '${_analytics['totalOrders'] ?? 0}',
+          icon: Icons.shopping_bag_rounded,
+          color: Colors.blue,
+        ),
+        _ModernMetricCard(
+          label: 'Revenue',
+          value: '₹${(_analytics['totalRevenue'] ?? 0.0).toStringAsFixed(0)}',
+          icon: Icons.payments_rounded,
+          color: Colors.green,
+        ),
+        _ModernMetricCard(
+          label: 'AOV',
+          value: '₹${(_analytics['avgOrderValue'] ?? 0.0).toStringAsFixed(0)}',
+          icon: Icons.data_saver_off_rounded,
+          color: Colors.orange,
+        ),
+        _ModernMetricCard(
+          label: 'Ecosystem',
+          value: '${_analytics['totalUsers'] ?? 0}',
+          icon: Icons.hub_rounded,
+          color: Colors.purple,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopFarmers() {
+    final top = (_analytics['topFarmers'] as List<dynamic>? ?? []);
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: C.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardHeader('🏆 Top Providers', 'By volume of successful operations'),
+          const SizedBox(height: 24),
+          if (top.isEmpty)
+            _buildEmptyState()
+          else
+            ...top.map((entry) => _buildFarmerRankItem(entry)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFarmerRankItem(dynamic entry) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: C.surfaceContainerLow.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: C.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.agriculture_rounded, color: C.primary, size: 18),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: C.primary, borderRadius: BorderRadius.circular(20)),
+            child: Text('${entry.value} ops', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryDistribution() {
+    final dist = (_analytics['categoryDistribution'] as Map<String, int>? ?? {});
+    final total = _analytics['totalProducts'] as int? ?? 1;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: C.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardHeader('📊 Categories', 'Stock distribution analysis'),
+          const SizedBox(height: 24),
+          if (dist.isEmpty)
+            _buildEmptyState()
+          else
+            ...dist.entries.map((e) => _buildCategoryProgress(e.key, e.value, total)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryProgress(String name, int count, int total) {
+    final pct = total > 0 ? count / total : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: C.onSurfaceVariant)),
+              Text('${(pct * 100).toStringAsFixed(0)}%', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: C.primary)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: pct,
+              minHeight: 8,
+              backgroundColor: C.surfaceContainerLow,
+              color: C.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardHeader(String title, String sub) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: C.onSurface)),
+        Text(sub, style: TextStyle(fontSize: 11, color: C.onSurfaceVariant.withValues(alpha: 0.5))),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Text('Insufficient data for visualization', style: TextStyle(fontSize: 12, color: C.onSurfaceVariant)),
       ),
     );
   }
 }
 
-class _MetricCard extends StatelessWidget {
+class _ModernMetricCard extends StatelessWidget {
+  final String label, value;
   final IconData icon;
-  final String label;
-  final String value;
   final Color color;
-
-  const _MetricCard({required this.icon, required this.label, required this.value, required this.color});
+  const _ModernMetricCard({required this.label, required this.value, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: C.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 20),
           ),
           const Spacer(),
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: C.onSurfaceVariant.withValues(alpha: 0.6))),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: C.onSurface, letterSpacing: -1)),
         ],
       ),
     );

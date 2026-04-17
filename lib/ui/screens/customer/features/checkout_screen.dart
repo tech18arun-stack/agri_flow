@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:appwrite/appwrite.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../data/models.dart';
 import '../../../../services/appwrite_service.dart';
 import '../../../../services/appwrite_config.dart';
@@ -43,9 +44,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _processing = true);
 
     try {
-      if (!AppwriteService.instance.isInitialized)
+      if (!AppwriteService.instance.isInitialized) {
         await AppwriteService.instance.init();
+      }
 
+      if (!mounted) return;
       final user = auth.user;
       final products = context.read<ProductProvider>().all;
 
@@ -64,6 +67,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             .map((item) => {
                   'productId': item.product.id,
                   'productName': item.product.name,
+                  'productImageUrl': item.product.imageUrl ?? '',
                   'price': item.product.price,
                   'quantity': item.quantity,
                 })
@@ -232,15 +236,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     subtitle: 'Secure payment at your doorstep',
                     onTap: () => setState(() => _paymentMethod = 'cod'),
                   ),
-                  const SizedBox(height: 12),
-                  _PaymentOption(
-                    value: 'upi',
-                    selected: _paymentMethod == 'upi',
-                    icon: Icons.qr_code_scanner_rounded,
-                    title: 'DIGITAL UPI',
-                    subtitle: 'Instant secure checkout via UPI',
-                    onTap: () => setState(() => _paymentMethod = 'upi'),
-                  ),
+
                   const SizedBox(height: 32),
 
                   // Final Summary
@@ -522,15 +518,30 @@ class _OrderItemTile extends StatelessWidget {
           color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: const Color(0xFF064e3b).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(_getCategoryIcon(item.product.category),
-                color: const Color(0xFF064e3b), size: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: item.product.imageUrl != null && item.product.imageUrl!.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: item.product.imageUrl!,
+                    width: 45,
+                    height: 45,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      color: const Color(0xFF064e3b).withValues(alpha: 0.1),
+                      child: Center(
+                        child: Icon(_getCategoryIcon(item.product.category), color: const Color(0xFF064e3b).withValues(alpha: 0.3), size: 20),
+                      ),
+                    ),
+                  )
+                : Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF064e3b).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(_getCategoryIcon(item.product.category), color: const Color(0xFF064e3b), size: 20),
+                  ),
           ),
           const SizedBox(width: 16),
           Expanded(

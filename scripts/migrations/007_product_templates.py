@@ -11,7 +11,10 @@ import sys
 import io
 from dotenv import load_dotenv
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+if __name__ == "__main__":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    run()
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -99,6 +102,7 @@ def run():
         ("imageUrl", "string", {"size": 500, "required": False}),
         ("icon", "string", {"size": 10, "required": False, "default": "🌾"}),
         ("color", "string", {"size": 20, "required": False, "default": "#4CAF50"}),
+        ("keywords", "string", {"size": 500, "required": False}),
         ("active", "boolean", {"required": False, "default": True}),
         ("sortOrder", "integer", {"required": False, "default": 0}),
     ]
@@ -111,19 +115,14 @@ def run():
     print("\n🌱 Seeding product templates:")
     products = [
         # Vegetables
-        {"id": "tomato", "nameEn": "Tomato", "nameTa": "தக்காளி", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/89/Tomato_je.jpg", "icon": "🍅", "color": "#E53935", "active": True, "sortOrder": 1},
-        {"id": "onion", "nameEn": "Onion", "nameTa": "வெங்காயம்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Onions.jpg", "icon": "🧅", "color": "#9C27B0", "active": True, "sortOrder": 2},
-        {"id": "potato", "nameEn": "Potato", "nameTa": "உருளைக்கிழங்கு", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Patates.jpg", "icon": "🥔", "color": "#FFC107", "active": True, "sortOrder": 3},
-        {"id": "brinjal", "nameEn": "Brinjal", "nameTa": "கத்தரிக்காய்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Aubergine.jpg", "icon": "🍆", "color": "#673AB7", "active": True, "sortOrder": 4},
-        {"id": "cabbage", "nameEn": "Cabbage", "nameTa": "முட்டைகோஸ்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Cabbage.jpg", "icon": "🥬", "color": "#009688", "active": True, "sortOrder": 5},
-        {"id": "cauliflower", "nameEn": "Cauliflower", "nameTa": "காலிஃபிளவர்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Cauliflower.jpg", "icon": "🤍", "color": "#F5F5F5", "active": True, "sortOrder": 6},
-        {"id": "carrot", "nameEn": "Carrot", "nameTa": "கேரட்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7e/Carrots.jpg", "icon": "🥕", "color": "#FF5722", "active": True, "sortOrder": 7},
-        {"id": "beetroot", "nameEn": "Beetroot", "nameTa": "பீட்ரூட்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Beetroot.jpg", "icon": "🟣", "color": "#8E24AA", "active": True, "sortOrder": 8},
-        {"id": "drumstick", "nameEn": "Drumstick", "nameTa": "முருங்கைக்காய்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Moringa_oleifera_fruits.jpg", "icon": "🌿", "color": "#4CAF50", "active": True, "sortOrder": 9},
-        {"id": "beans", "nameEn": "Beans", "nameTa": "பீன்ஸ்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/68/Green_beans.jpg", "icon": "🫘", "color": "#4CAF50", "active": True, "sortOrder": 10},
-        {"id": "okra", "nameEn": "Okra", "nameTa": "வெண்டைக்காய்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/83/Okra_1.jpg", "icon": "🌿", "color": "#8BC34A", "active": True, "sortOrder": 11},
-        {"id": "chilli", "nameEn": "Green Chilli", "nameTa": "பச்சை மிளகாய்", "category": "vegetables", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/29/Red_chili.jpg", "icon": "🌶️", "color": "#D32F2F", "active": True, "sortOrder": 12},
-
+        {"id": "tmpl_tomato", "nameEn": "Tomato", "nameTa": "தக்காளி", "category": "vegetables", "unit": "kg", "imageUrl": "https://images.unsplash.com/photo-1518977676601-b53f02bad67b?auto=format&fit=crop&q=80&w=400", "icon": "🍅", "color": "#EF4444", "keywords": "tomato,thakkali,தக்காளி", "active": True, "sortOrder": 1},
+        {"id": "tmpl_onion", "nameEn": "Onion", "nameTa": "வெங்காயம்", "category": "vegetables", "unit": "kg", "imageUrl": "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&q=80&w=400", "icon": "🧅", "color": "#F97316", "keywords": "onion,vengayam,வெங்காயம்", "active": True, "sortOrder": 2},
+        {"id": "tmpl_potato", "nameEn": "Potato", "nameTa": "உருளைக்கிழங்கு", "category": "vegetables", "unit": "kg", "imageUrl": "https://images.unsplash.com/photo-1444858291040-589718485c2c?auto=format&fit=crop&q=80&w=400", "icon": "🥔", "color": "#B45309", "keywords": "potato,urulaikizhangu,உருளைக்கிழங்கு", "active": True, "sortOrder": 3},
+        {"id": "tmpl_brinjal", "nameEn": "Brinjal", "nameTa": "கத்தரிக்காய்", "category": "vegetables", "unit": "kg", "imageUrl": "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=400", "icon": "🍆", "color": "#8B5CF6", "keywords": "brinjal,kathirikkai,கத்தரிக்காய்", "active": True, "sortOrder": 4},
+        
+        # Note: This is an abbreviated core list. 
+        # For the full 150+ crop catalog, run migration 007a_seed_product_templates.py
+        
         # Fruits
         {"id": "banana", "nameEn": "Banana", "nameTa": "வாழை", "category": "fruits", "unit": "dozen", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Banana-Single.jpg", "icon": "🍌", "color": "#FFEB3B", "active": True, "sortOrder": 20},
         {"id": "mango", "nameEn": "Mango", "nameTa": "மாம்பழம்", "category": "fruits", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/90/Hapus_Mango.jpg", "icon": "🥭", "color": "#FF9800", "active": True, "sortOrder": 21},
@@ -133,7 +132,7 @@ def run():
         {"id": "guava", "nameEn": "Guava", "nameTa": "கொய்யா", "category": "fruits", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Psidium_guaja_2.jpg", "icon": "🍏", "color": "#8BC34A", "active": True, "sortOrder": 25},
         {"id": "coconut", "nameEn": "Coconut", "nameTa": "தேங்காய்", "category": "fruits", "unit": "piece", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/74/Coconut.jpg", "icon": "🥥", "color": "#795548", "active": True, "sortOrder": 26},
 
-        # Grains
+        # Grains=
         {"id": "rice", "nameEn": "Rice", "nameTa": "அரிசி", "category": "grains", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Rice_grains.jpg", "icon": "🍚", "color": "#F5F5F5", "active": True, "sortOrder": 30},
         {"id": "wheat", "nameEn": "Wheat", "nameTa": "கோதுமை", "category": "grains", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Wheat_close-up.JPG", "icon": "🌾", "color": "#FFC107", "active": True, "sortOrder": 31},
         {"id": "maize", "nameEn": "Maize", "nameTa": "சோளம்", "category": "grains", "unit": "kg", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Sorghum_bicolor.jpg", "icon": "🌽", "color": "#FFEB3B", "active": True, "sortOrder": 32},

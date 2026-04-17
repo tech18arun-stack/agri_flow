@@ -266,6 +266,8 @@ class L {
   static const productModerationTa = 'பொருள் மிதமான';
   static const modDesc = 'Pending approvals required for marketplace';
   static const modDescTa = 'சந்தைக்கு காத்திருக்கும் ஒப்புதல்கள்';
+  static const orders = 'Orders';
+  static const ordersTa = 'ஆர்டர்கள்';
   static const approve = 'Approve';
   static const approveTa = 'ஒப்புதல்';
   static const reject = 'Reject';

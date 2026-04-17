@@ -15,6 +15,7 @@ import 'features/farmer_add_product_tab.dart';
 import 'features/farmer_profile_screen.dart';
 import '../../../widgets/interactive_card.dart';
 import '../../../widgets/floating_glass_nav_bar.dart';
+import '../map/product_map_screen.dart';
 
 class FarmerScreen extends StatefulWidget {
   const FarmerScreen({super.key});
@@ -81,43 +82,55 @@ class _FarmerScreenState extends State<FarmerScreen> {
       const FarmerProfileScreen(),
     ];
 
-    return Scaffold(
-      backgroundColor: C.background,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: C.background,
+        body: IndexedStack(
+          index: _currentIndex,
+          children: screens,
+        ),
+        bottomNavigationBar: _currentIndex == 4
+            ? null
+            : FloatingGlassNavBar(
+                currentIndex: _currentIndex,
+                onTap: (index) => setState(() => _currentIndex = index),
+                items: [
+                  FloatingGlassNavItem(icon: Icons.dashboard_rounded, label: 'முகப்பு | Dash'),
+                  FloatingGlassNavItem(icon: Icons.inventory_2_rounded, label: 'இருப்பு | Stock'),
+                  FloatingGlassNavItem(icon: Icons.shopping_bag_rounded, label: 'ஆர்டர் | Orders'),
+                  FloatingGlassNavItem(icon: Icons.description_rounded, label: 'ஒப்பந்தம் | LOI'),
+                  FloatingGlassNavItem(icon: Icons.person_rounded, label: 'சுயவிவரம் | Profile'),
+                ],
+              ),
+        extendBody: true,
+        floatingActionButton: _currentIndex == 0
+            ? LayoutBuilder(builder: (context, constraints) {
+                final isSmall = MediaQuery.of(context).size.width < 400;
+                return isSmall 
+                  ? FloatingActionButton(
+                      onPressed: () => _navigateTo(const FarmerAddProductTab(), 'Add Product'),
+                      backgroundColor: C.primary,
+                      foregroundColor: Colors.white,
+                      child: const Icon(Icons.add),
+                    )
+                  : FloatingActionButton.extended(
+                      onPressed: () => _navigateTo(const FarmerAddProductTab(), 'Add Product'),
+                      backgroundColor: C.primary,
+                      foregroundColor: Colors.white,
+                      icon: const Icon(Icons.add),
+                      label: const Text('சேர் | Add Product', style: TextStyle(fontWeight: FontWeight.w700)),
+                      elevation: 4,
+                    );
+              })
+            : null,
       ),
-      bottomNavigationBar: _currentIndex == 4
-          ? null
-          : FloatingGlassNavBar(
-              currentIndex: _currentIndex,
-              onTap: (index) => setState(() => _currentIndex = index),
-              items: [
-                FloatingGlassNavItem(
-                    icon: Icons.dashboard_rounded, label: 'Dash'),
-                FloatingGlassNavItem(
-                    icon: Icons.inventory_2_rounded, label: 'Stock'),
-                FloatingGlassNavItem(
-                    icon: Icons.shopping_bag_rounded, label: 'Orders'),
-                FloatingGlassNavItem(
-                    icon: Icons.description_rounded, label: 'LOI'),
-                FloatingGlassNavItem(
-                    icon: Icons.person_rounded, label: 'Profile'),
-              ],
-            ),
-      extendBody: true,
-      floatingActionButton: _currentIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: () =>
-                  _navigateTo(const FarmerAddProductTab(), 'Add Product'),
-              backgroundColor: C.primary,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Product',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              elevation: 4,
-            )
-          : null,
     );
   }
 }
@@ -158,60 +171,65 @@ class _FarmerDashboard extends StatelessWidget {
         await prodProv.loadAll();
         await orderProv.loadFarmerOrders(farmerId);
       },
-      child: CustomScrollView(
-        controller: scrollController,
-        slivers: [
-          // Hero Header
-          SliverToBoxAdapter(
-              child: _buildHeader(context, userName, district, auth)),
-
-          // Quick Stats
-          SliverToBoxAdapter(
-              child: _buildStatsCards(
-                  context, totalRevenue, farmerProducts.length, pendingOrders)),
-
-          // Quick Actions Grid
-          SliverToBoxAdapter(child: _buildQuickActions(context)),
-
-          // My Products Preview
-          SliverToBoxAdapter(
-              child: _buildSection(
-                  'My Products', _buildProductsPreview(context, farmerProducts),
-                  () {
-            onNavigate(
-              MyProductsScreen(onAddProduct: () {
-                Navigator.pop(context);
-                onNavigate(const FarmerAddProductTab(), 'Add Product');
-              }),
-              'My Products',
-            );
-          })),
-
-          // Market Prices Preview
-          SliverToBoxAdapter(
-              child: _buildSection(
-                  'Market Prices', _buildMarketPricesPreview(context), () {
-            onNavigate(const MarketPricesScreen(), 'Market Prices');
-          })),
-
-          // Trending
-          SliverToBoxAdapter(
-              child:
-                  _buildSection('Trending', _buildTrendingPreview(context), () {
-            onNavigate(const TrendingProductsScreen(), 'Trending Products');
-          })),
-
-          // Orders Preview
-          SliverToBoxAdapter(
-              child: _buildSection(
-                  'Recent Orders', _buildOrdersPreview(context, farmerOrders),
-                  () {
-            onNavigate(const FarmerOrdersTab(), 'Orders');
-          })),
-
-          // Bottom padding
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
-        ],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              // Hero Header
+              SliverToBoxAdapter(
+                  child: _buildHeader(context, userName, district, auth)),
+    
+              // Quick Stats
+              SliverToBoxAdapter(
+                  child: _buildStatsCards(
+                      context, totalRevenue, farmerProducts.length, pendingOrders)),
+    
+              // Quick Actions Grid
+              SliverToBoxAdapter(child: _buildQuickActions(context)),
+    
+              // My Products Preview
+              SliverToBoxAdapter(
+                  child: _buildSection(
+                      'எனது தயாரிப்புகள் | My Products', _buildProductsPreview(context, farmerProducts),
+                      () {
+                onNavigate(
+                  MyProductsScreen(onAddProduct: () {
+                    Navigator.pop(context);
+                    onNavigate(const FarmerAddProductTab(), 'Add Product');
+                  }),
+                  'My Products',
+                );
+              })),
+    
+              // Market Prices Preview
+              SliverToBoxAdapter(
+                  child: _buildSection(
+                      'சந்தை விலை | Market Prices', _buildMarketPricesPreview(context), () {
+                onNavigate(const MarketPricesScreen(), 'Market Prices');
+              })),
+    
+              // Trending
+              SliverToBoxAdapter(
+                  child:
+                      _buildSection('முன்னணி | Trending', _buildTrendingPreview(context), () {
+                onNavigate(const TrendingProductsScreen(), 'Trending Products');
+              })),
+    
+              // Orders Preview
+              SliverToBoxAdapter(
+                  child: _buildSection(
+                      'சமீபத்திய ஆர்டர்கள் | Recent Orders', _buildOrdersPreview(context, farmerOrders),
+                      () {
+                onNavigate(const FarmerOrdersTab(), 'Orders');
+              })),
+    
+              // Bottom padding
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -234,22 +252,54 @@ class _FarmerDashboard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Dashboard',
+                    Text('தகவல் பலகை | Dashboard',
                         style: TextStyle(
                             color: C.onSurfaceVariant,
                             fontSize: 13,
                             letterSpacing: 0.5,
                             fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Text('Hi, $userName 👋',
-                        style: const TextStyle(
-                            color: C.onSurface,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5)),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('வணக்கம், $userName 👋',
+                          style: const TextStyle(
+                              color: C.onSurface,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5)),
+                    ),
                   ],
                 ),
               ),
+              InteractiveCard(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProductMapScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4))
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.map_rounded,
+                        color: Color(0xFF0d631b), size: 24),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               InteractiveCard(
                 scaleFactor: 0.9,
                 onTap: () {
@@ -318,194 +368,214 @@ class _FarmerDashboard extends StatelessWidget {
       BuildContext context, double revenue, int products, int orders) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 380;
+        
+        final revenueCard = InteractiveCard(
+          scaleFactor: 0.96,
+          onTap: () {},
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0d631b), Color(0xFF16A34A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                    color: const Color(0xFF0d631b).withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.account_balance_wallet,
+                      color: Colors.white, size: 28),
+                ),
+                SizedBox(height: isNarrow ? 16 : 24),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('மொத்த வருவாய் | Total Revenue',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('₹${revenue.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+
+        final statsColumn = Column(
           children: [
             Expanded(
-              flex: 5,
+              flex: isNarrow ? 0 : 1,
               child: InteractiveCard(
-                scaleFactor: 0.96,
-                onTap: () {},
+                scaleFactor: 0.92,
+                onTap: () => onNavigate(
+                    MyProductsScreen(onAddProduct: () {}), 'Products'),
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0d631b), Color(0xFF16A34A)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                          color: const Color(0xFF0d631b).withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8)),
-                    ],
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                        color: const Color(0xFFFDE68A), width: 1),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.account_balance_wallet,
-                            color: Colors.white, size: 28),
-                      ),
-                      const SizedBox(height: 24),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Total Revenue',
-                              style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          Text('₹${revenue.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -1)),
-                        ],
-                      ),
+                      const Icon(Icons.inventory_2,
+                          color: Color(0xFFD97706), size: 24),
+                      const SizedBox(height: 12),
+                      Text('$products',
+                          style: const TextStyle(
+                              color: Color(0xFF92400E),
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900)),
+                      const Text('தயாரிப்புகள் | Products',
+                          style: TextStyle(
+                              color: Color(0xFFB45309),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(height: 12),
             Expanded(
-              flex: 4,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: InteractiveCard(
-                      scaleFactor: 0.92,
-                      onTap: () => onNavigate(
-                          MyProductsScreen(onAddProduct: () {}), 'Products'),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                              color: const Color(0xFFFDE68A), width: 1),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.inventory_2,
-                                color: Color(0xFFD97706), size: 24),
-                            const SizedBox(height: 12),
-                            Text('$products',
-                                style: const TextStyle(
-                                    color: Color(0xFF92400E),
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900)),
-                            const Text('Products',
-                                style: TextStyle(
-                                    color: Color(0xFFB45309),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
+              flex: isNarrow ? 0 : 1,
+              child: InteractiveCard(
+                scaleFactor: 0.92,
+                onTap: () =>
+                    onNavigate(const FarmerOrdersTab(), 'Orders'),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDBEAFE),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                        color: const Color(0xFFBFDBFE), width: 1),
                   ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: InteractiveCard(
-                      scaleFactor: 0.92,
-                      onTap: () =>
-                          onNavigate(const FarmerOrdersTab(), 'Orders'),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDBEAFE),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                              color: const Color(0xFFBFDBFE), width: 1),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.local_shipping,
-                                color: Color(0xFF2563EB), size: 24),
-                            const SizedBox(height: 12),
-                            Text('$orders',
-                                style: const TextStyle(
-                                    color: Color(0xFF1E3A8A),
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900)),
-                            const Text('Orders',
-                                style: TextStyle(
-                                    color: Color(0xFF1D4ED8),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.local_shipping,
+                          color: Color(0xFF2563EB), size: 24),
+                      const SizedBox(height: 12),
+                      Text('$orders',
+                          style: const TextStyle(
+                              color: Color(0xFF1E3A8A),
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900)),
+                      const Text('ஆர்டர்கள் | Orders',
+                          style: TextStyle(
+                              color: Color(0xFF1D4ED8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ],
-        ),
-      ),
+        );
+
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+               revenueCard,
+               const SizedBox(height: 12),
+               SizedBox(height: 320, child: statsColumn),
+            ],
+          );
+        }
+
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 5, child: revenueCard),
+              const SizedBox(width: 12),
+              Expanded(flex: 4, child: statsColumn),
+            ],
+          ),
+        );
+      }),
     );
   }
+
 
   Widget _buildQuickActions(BuildContext context) {
     final actions = [
       {
         'icon': Icons.add_circle,
-        'label': 'Add Product',
+        'label': 'சேர் | Add',
         'color': const Color(0xFF0d631b)
       },
       {
         'icon': Icons.inventory_2,
-        'label': 'My Stock',
+        'label': 'இருப்பு | Stock',
         'color': const Color(0xFF8b5cf6)
       },
       {
         'icon': Icons.price_check,
-        'label': 'Prices',
+        'label': 'விலைகள் | Prices',
         'color': const Color(0xFF06b6d4)
       },
       {
         'icon': Icons.trending_up,
-        'label': 'Trending',
+        'label': 'முன்னணி | Hot',
         'color': const Color(0xFFf59e0b)
       },
       {
         'icon': Icons.compare_arrows,
-        'label': 'Compare',
+        'label': 'ஒப்பிடு | Compare',
         'color': const Color(0xFFec4899)
       },
       {
         'icon': Icons.shopping_bag,
-        'label': 'Orders',
+        'label': 'ஆர்டர் | Orders',
         'color': const Color(0xFF10b981)
       },
       {
         'icon': Icons.description,
-        'label': 'LOI',
+        'label': 'ஒப்பந்தம் | LOI',
         'color': const Color(0xFF6366f1)
       },
       {
         'icon': Icons.bar_chart,
-        'label': 'Analytics',
+        'label': 'புள்ளிவிவரம் | Stats',
         'color': const Color(0xFFef4444)
       },
     ];
@@ -520,52 +590,49 @@ class _FarmerDashboard extends StatelessWidget {
           crossAxisCount = 6;
         }
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: actions.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.85,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 16,
-          ),
-          itemBuilder: (context, i) {
-            final action = actions[i];
-            return GestureDetector(
-              onTap: () => _handleAction(context, action['label'] as String),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4))
-                      ],
+        return Wrap(
+          spacing: 12,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
+          children: actions.map((action) {
+            return SizedBox(
+              width: (constraints.maxWidth - (12 * (crossAxisCount - 1)) - 32) / crossAxisCount,
+              child: GestureDetector(
+                onTap: () => _handleAction(context, action['label'] as String),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4))
+                        ],
+                      ),
+                      child: Icon(action['icon'] as IconData,
+                          color: action['color'] as Color, size: 22),
                     ),
-                    child: Icon(action['icon'] as IconData,
-                        color: action['color'] as Color, size: 24),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    action['label'] as String,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1b1d0e)),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        action['label'] as String,
+                        style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1b1d0e)),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
-          },
+          }).toList(),
         );
       }),
     );
@@ -573,9 +640,11 @@ class _FarmerDashboard extends StatelessWidget {
 
   void _handleAction(BuildContext context, String label) {
     switch (label) {
+      case 'சேர் | Add':
       case 'Add Product':
         onNavigate(const FarmerAddProductTab(), 'Add Product');
         break;
+      case 'இருப்பு | Stock':
       case 'My Stock':
         onNavigate(
           MyProductsScreen(onAddProduct: () {
@@ -585,21 +654,27 @@ class _FarmerDashboard extends StatelessWidget {
           'My Stock',
         );
         break;
+      case 'விலைகள் | Prices':
       case 'Prices':
         onNavigate(const MarketPricesScreen(), 'Market Prices');
         break;
+      case 'முன்னணி | Hot':
       case 'Trending':
         onNavigate(const TrendingProductsScreen(), 'Trending Products');
         break;
+      case 'ஒப்பிடு | Compare':
       case 'Compare':
         onNavigate(const PriceComparisonScreen(), 'Price Comparison');
         break;
+      case 'ஆர்டர் | Orders':
       case 'Orders':
         onNavigate(const FarmerOrdersTab(), 'Orders');
         break;
+      case 'ஒப்பந்தம் | LOI':
       case 'LOI':
         onNavigate(const FarmerLOITab(), 'LOI Requests');
         break;
+      case 'புள்ளிவிவரம் | Stats':
       case 'Analytics':
         onNavigate(const BestSellersScreen(), 'Analytics');
         break;
@@ -612,17 +687,28 @@ class _FarmerDashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            runAlignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1b1d0e))),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 240),
+                child: Text(title,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1b1d0e))),
+              ),
               TextButton(
                 onPressed: onViewAll,
-                child: const Text('View All',
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('அனைத்தும் | View All',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -749,7 +835,7 @@ class _FarmerDashboard extends StatelessWidget {
     return GestureDetector(
       onTap: () => onNavigate(const MarketPricesScreen(), 'Market Prices'),
       child: Container(
-        height: 100,
+        constraints: const BoxConstraints(minHeight: 80),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
             color: Colors.white,
@@ -765,18 +851,22 @@ class _FarmerDashboard extends StatelessWidget {
                 child: const Icon(Icons.price_check,
                     color: Color(0xFF06b6d4), size: 24)),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                  Text('Live Market Prices',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                  Text('Track prices in your district',
-                      style: TextStyle(fontSize: 12, color: Colors.grey))
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('நேரலை சந்தை விலை | Live Prices',
+                        style:
+                            TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text('உங்கள் மாவட்டத்தின் விலைகளைக் கண்காணிக்கவும்',
+                      style: TextStyle(fontSize: 11, color: Colors.grey))
                 ])),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
         ),
       ),
@@ -788,7 +878,7 @@ class _FarmerDashboard extends StatelessWidget {
       onTap: () =>
           onNavigate(const TrendingProductsScreen(), 'Trending Products'),
       child: Container(
-        height: 100,
+        constraints: const BoxConstraints(minHeight: 80),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
             color: Colors.white,
@@ -804,18 +894,22 @@ class _FarmerDashboard extends StatelessWidget {
                 child: const Icon(Icons.trending_up,
                     color: Color(0xFFf59e0b), size: 24)),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                  Text('Trending Products',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                  Text('See what\'s selling well',
-                      style: TextStyle(fontSize: 12, color: Colors.grey))
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('முன்னணி தயாரிப்புகள் | Trending',
+                        style:
+                            TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text('எது நன்றாக விற்பனை ஆகிறது என்று பாருங்கள்',
+                      style: TextStyle(fontSize: 11, color: Colors.grey))
                 ])),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
         ),
       ),
@@ -831,7 +925,7 @@ class _FarmerDashboard extends StatelessWidget {
           decoration: BoxDecoration(
               color: Colors.white, borderRadius: BorderRadius.circular(16)),
           child: const Center(
-              child: Text('No orders yet',
+              child: Text('இன்னும் ஆர்டர்கள் எதுவும் இல்லை | No orders yet',
                   style: TextStyle(fontSize: 14, color: Colors.grey))),
         ),
       );
@@ -839,7 +933,7 @@ class _FarmerDashboard extends StatelessWidget {
     return GestureDetector(
       onTap: () => onNavigate(const FarmerOrdersTab(), 'Orders'),
       child: Container(
-        height: 100,
+        constraints: const BoxConstraints(minHeight: 80),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
             color: Colors.white,
@@ -860,15 +954,19 @@ class _FarmerDashboard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('${orders.length} Orders',
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700)),
-                  Text('Tap to view all orders',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('${orders.length} ஆர்டர்கள் | Orders',
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text('அனைத்து ஆர்டர்களையும் பார்க்க தட்டவும்',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
         ),
       ),

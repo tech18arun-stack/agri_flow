@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../data/models.dart';
 
 class _ResponsiveBreakpoints {
@@ -215,19 +216,42 @@ class _WishlistProductCard extends StatelessWidget {
               children: [
                 Container(
                   height: 120,
+                  width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Color(0xFFf5f4ed),
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
                   ),
-                  child: Center(
-                    child: Icon(
-                      _getCategoryIcon(product.category),
-                      size: 48,
-                      color: const Color(0xFF002b02).withValues(alpha: 0.3),
-                    ),
-                  ),
+                  child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: CachedNetworkImage(
+                          imageUrl: product.imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Center(
+                            child: Icon(
+                              _getCategoryIcon(product.category),
+                              size: 48,
+                              color: const Color(0xFF002b02).withValues(alpha: 0.1),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Center(
+                            child: Icon(
+                              _getCategoryIcon(product.category),
+                              size: 48,
+                              color: const Color(0xFF002b02).withValues(alpha: 0.3),
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          _getCategoryIcon(product.category),
+                          size: 48,
+                          color: const Color(0xFF002b02).withValues(alpha: 0.3),
+                        ),
+                      ),
                 ),
                 // Wishlist toggle
                 Positioned(

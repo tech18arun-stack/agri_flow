@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../data/models.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../widgets/interactive_card.dart';
+import '../../map/product_map_screen.dart';
 
 class _ResponsiveBreakpoints {
   static double maxContentWidth = 1200;
@@ -344,6 +346,25 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                       color: Colors.white, size: 20),
                 ),
               ),
+              const SizedBox(width: 12),
+              InteractiveCard(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProductMapScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.map_rounded,
+                      color: Colors.white, size: 20),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -381,6 +402,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       _CategoryItem('fruits', 'FRUIT', Icons.apple_rounded),
       _CategoryItem('grains', 'GRAIN', Icons.grain_rounded),
       _CategoryItem('spices', 'SPICE', Icons.water_drop_rounded),
+      _CategoryItem('flowers', 'FLOWER', Icons.local_florist_rounded),
+      _CategoryItem('others', 'OTHERS', Icons.inventory_2_rounded),
     ];
 
     return Container(
@@ -652,6 +675,8 @@ class _PremiumProductCard extends StatelessWidget {
               child: Stack(
                 children: [
                   Container(
+                    width: double.infinity,
+                    height: double.infinity,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -665,13 +690,28 @@ class _PremiumProductCard extends StatelessWidget {
                         top: Radius.circular(16),
                       ),
                     ),
-                    child: Center(
-                      child: Icon(
-                        _categoryIcon(product.category),
-                        size: 48,
-                        color: C.primary.withValues(alpha: 0.25),
-                      ),
-                    ),
+                    child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            child: CachedNetworkImage(
+                              imageUrl: product.imageUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Center(
+                                child: Icon(
+                                  _categoryIcon(product.category),
+                                  size: 48,
+                                  color: C.primary.withValues(alpha: 0.1),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              _categoryIcon(product.category),
+                              size: 48,
+                              color: C.primary.withValues(alpha: 0.25),
+                            ),
+                          ),
                   ),
                   // Organic Badge
                   if (product.organic)
@@ -741,14 +781,30 @@ class _PremiumProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (product.nameTa.isNotEmpty)
+                        Text(
+                          product.nameTa,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF065f46),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Row(
@@ -826,6 +882,10 @@ class _PremiumProductCard extends StatelessWidget {
         return Icons.apple;
       case 'grains':
         return Icons.grain;
+      case 'spices':
+        return Icons.water_drop;
+      case 'flowers':
+        return Icons.local_florist;
       default:
         return Icons.eco;
     }
@@ -870,12 +930,15 @@ class _FilterPanelState extends State<_FilterPanel> {
   void didUpdateWidget(covariant _FilterPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isSidebar) {
-      if (oldWidget.selectedCategory != widget.selectedCategory)
+      if (oldWidget.selectedCategory != widget.selectedCategory) {
         _category = widget.selectedCategory;
-      if (oldWidget.priceRange != widget.priceRange)
+      }
+      if (oldWidget.priceRange != widget.priceRange) {
         _priceRange = widget.priceRange;
-      if (oldWidget.organicOnly != widget.organicOnly)
+      }
+      if (oldWidget.organicOnly != widget.organicOnly) {
         _organic = widget.organicOnly;
+      }
     }
   }
 
@@ -966,6 +1029,7 @@ class _FilterPanelState extends State<_FilterPanel> {
                       _SheetChip('🌾 Grains', 'grains'),
                       _SheetChip('🌶️ Spices', 'spices'),
                       _SheetChip('🌸 Flowers', 'flowers'),
+                      _SheetChip('📦 Others', 'others'),
                     ].map((chip) {
                       return _SheetChipWidget(
                         label: chip.label,

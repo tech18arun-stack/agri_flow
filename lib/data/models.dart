@@ -17,8 +17,11 @@ class UserModel {
   final String taluk;
   final String municipality;
   final String status;
+  final DateTime? deletionRequestedAt;
   final String? phone;
   final String? address;
+  final double? lat;
+  final double? lng;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -31,11 +34,27 @@ class UserModel {
     this.taluk = '',
     this.municipality = '',
     this.status = 'active',
+    this.deletionRequestedAt,
     this.phone,
     this.address,
+    this.lat,
+    this.lng,
     this.createdAt,
     this.updatedAt,
   });
+
+  bool get isDeletionPending {
+    if (status != 'deletion_requested' || deletionRequestedAt == null) return false;
+    // Account deletion is processed after 48 hours
+    return true;
+  }
+
+  int get deletionHoursRemaining {
+    if (deletionRequestedAt == null) return 0;
+    final deadline = deletionRequestedAt!.add(const Duration(hours: 48));
+    final remaining = deadline.difference(DateTime.now()).inHours;
+    return remaining > 0 ? remaining : 0;
+  }
 
   String get displayName => name.isNotEmpty ? name : email.split('@').first;
 
@@ -60,6 +79,7 @@ class ProductModel {
   final String? address;
   final String farmerName;
   final String farmerId;
+  final String? farmerPhone;
   final String? imageUrl;
   final double rating;
   final int reviews;
@@ -80,6 +100,7 @@ class ProductModel {
     this.address,
     required this.farmerName,
     required this.farmerId,
+    this.farmerPhone,
     this.imageUrl,
     this.rating = 0,
     this.reviews = 0,
@@ -171,11 +192,13 @@ class OrderModel {
 class OrderItem {
   final String productId;
   final String productName;
+  final String productImageUrl;
   final double price;
   final int quantity;
   const OrderItem({
     required this.productId,
     required this.productName,
+    this.productImageUrl = '',
     required this.price,
     required this.quantity,
   });

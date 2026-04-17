@@ -24,6 +24,10 @@ Thumbs.db
 # Android
 *.apk
 *.aab
+*.jks
+*.keystore
+android/key.properties
+android/app/upload-keystore.jks
 
 # Fonts (placeholders)
 assets/fonts/

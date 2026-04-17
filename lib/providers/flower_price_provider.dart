@@ -312,4 +312,42 @@ class FlowerPriceProvider extends ChangeNotifier {
     _successMessage = null;
     notifyListeners();
   }
+
+  Future<bool> deletePrice(String docId) async {
+    try {
+      await _svc.db.deleteDocument(
+        databaseId: _svc.databaseId,
+        collectionId: AppwriteConfig.flowerPricesCollectionId,
+        documentId: docId,
+      );
+      _allPrices.removeWhere((p) => p.docId == docId);
+      _todayPrices.removeWhere((p) => p.docId == docId);
+      notifyListeners();
+      return true;
+    } catch(e) {
+      debugPrint('❌ deletePrice error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateStatus(String docId, String status) async {
+    try {
+      await _svc.db.updateDocument(
+        databaseId: _svc.databaseId,
+        collectionId: AppwriteConfig.flowerPricesCollectionId,
+        documentId: docId,
+        data: {'status': status},
+      );
+      final idx = _allPrices.indexWhere((p) => p.docId == docId);
+      if (idx >= 0) _allPrices[idx] = _allPrices[idx].copyWith(status: status);
+      final idx2 = _todayPrices.indexWhere((p) => p.docId == docId);
+      if (idx2 >= 0) _todayPrices[idx2] = _todayPrices[idx2].copyWith(status: status);
+      notifyListeners();
+      return true;
+    } catch(e) {
+      debugPrint('❌ updateStatus error: $e');
+      return false;
+    }
+  }
 }
+

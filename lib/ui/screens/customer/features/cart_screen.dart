@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/providers.dart';
 import '../../../../core/constants/colors.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/utils/category_utils.dart';
 import '../../../../widgets/interactive_card.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../data/models.dart';
 
 /// Full-featured Cart Screen replacing the previous stub route.
@@ -178,16 +180,36 @@ class _CartItemTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: categoryColor(item.product.category)
-                      .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(categoryIcon(item.product.category),
-                    size: 30, color: categoryColor(item.product.category)),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: item.product.imageUrl != null && item.product.imageUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: item.product.imageUrl!,
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(
+                          color: categoryColor(item.product.category).withValues(alpha: 0.1),
+                          child: Center(
+                            child: Icon(categoryIcon(item.product.category), size: 24, color: categoryColor(item.product.category).withValues(alpha: 0.3)),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          color: categoryColor(item.product.category).withValues(alpha: 0.1),
+                          child: Center(
+                            child: Icon(categoryIcon(item.product.category), size: 24, color: categoryColor(item.product.category)),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: categoryColor(item.product.category).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(categoryIcon(item.product.category), size: 30, color: categoryColor(item.product.category)),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -221,6 +243,22 @@ class _CartItemTile extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                onPressed: () async {
+                  if (item.product.farmerPhone != null && item.product.farmerPhone!.isNotEmpty) {
+                    final url = Uri.parse('tel:${item.product.farmerPhone}');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Farmer contact not available')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFF0d631b), size: 18),
+                tooltip: 'Call Farmer',
               ),
               _QuantityStepper(item: item, cart: cart),
             ],

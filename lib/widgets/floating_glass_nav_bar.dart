@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'glass_container.dart';
 import 'interactive_card.dart';
 import '../../../core/constants/colors.dart';
@@ -8,11 +7,13 @@ class FloatingGlassNavItem {
   final IconData icon;
   final String label;
   final String? labelTa;
+  final int? badge;
 
   FloatingGlassNavItem({
     required this.icon,
     required this.label,
     this.labelTa,
+    this.badge,
   });
 }
 
@@ -94,24 +95,60 @@ class FloatingGlassNavBar extends StatelessWidget {
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               padding: const EdgeInsets.all(8),
-                              child: Icon(
-                                item.icon,
-                                size: isSelected ? 24 : 22,
-                                color: isSelected
-                                    ? C.primary
-                                    : C.onSurface.withValues(alpha: 0.4),
+                              child: Stack(
+                                children: [
+                                  Icon(
+                                    item.icon,
+                                    size: isSelected ? 24 : 22,
+                                    color: isSelected
+                                        ? C.primary
+                                        : C.onSurface.withValues(alpha: 0.4),
+                                  ),
+                                  if (item.badge != null && item.badge! > 0)
+                                    Positioned(
+                                      top: -4,
+                                      right: -4,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 16,
+                                          minHeight: 16,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '${item.badge}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                             if (isSelected)
-                              Text(
-                                showTamil && item.labelTa != null
-                                    ? item.labelTa!
-                                    : item.label,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: C.primary,
-                                  letterSpacing: -0.2,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    showTamil && item.labelTa != null
+                                        ? item.labelTa!
+                                        : item.label,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: C.primary,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
                                 ),
                               ),
                           ],

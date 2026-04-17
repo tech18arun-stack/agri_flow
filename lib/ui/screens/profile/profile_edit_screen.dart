@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui';
 import '../../../providers/providers.dart';
 import '../../../core/constants/colors.dart';
 import '../../../services/location_service.dart';
@@ -554,7 +553,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             border: Border.all(color: C.outlineVariant.withValues(alpha: 0.3)),
           ),
           child: DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             icon: const Icon(Icons.expand_more_rounded, color: C.primary),
             decoration: InputDecoration(
               prefixIcon: Icon(icon, color: C.primary, size: 20),

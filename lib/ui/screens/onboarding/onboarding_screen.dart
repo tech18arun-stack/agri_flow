@@ -46,6 +46,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitle: 'Fresh produce delivered from farm to your doorstep',
       subtitleTa: 'பண்ணையிலிருந்து உங்கள் வாசல்வரை புதிய விளைபொருட்கள்',
     ),
+    _OnboardingSlide(
+      icon: Icons.location_on_outlined,
+      iconBg: Color(0xFFE0E7FF),
+      iconColor: Color(0xFF4338CA),
+      title: 'Secure Location',
+      titleTa: 'பாதுகாப்பான இடம்',
+      subtitle:
+          'AgriFlow uses your location to show products and farmers near you. This ensures the freshest produce with minimal transit.',
+      subtitleTa:
+          'அக்ரிப்ளோ உங்கள் இருப்பிடத்தைப் பயன்படுத்தி உங்களுக்கு அருகிலுள்ள தயாரிப்புகளையும் விவசாயிகளையும் காட்டுகிறது. இது குறைந்த போக்குவரத்து மற்றும் புதிய விளைபொருட்களை உறுதி செய்கிறது.',
+    ),
   ];
 
   Future<void> _finish() async {
