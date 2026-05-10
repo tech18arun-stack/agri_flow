@@ -1,0 +1,33 @@
+# Flutter
+.dart_tool/
+.packages
+build/
+*.iml
+*.ipr
+*.iws
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Private
+.env
+.gemini/
+
+# Android
+*.apk
+*.aab
+*.jks
+*.keystore
+android/key.properties
+android/app/upload-keystore.jks
+
+# Fonts (placeholders)
+assets/fonts/
